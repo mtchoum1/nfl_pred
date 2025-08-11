@@ -54,7 +54,10 @@ def predict_winner(team1_abv, team2_abv, teamsold_dict, teamsnew_dict):
     print(f"{team1_abv}: {team1_score * 100:.2f}% | {team2_abv}: {team2_score * 100:.2f}%")
     if team1_score > team2_score:
         print(f"{team1_abv} is favored to win.")
+        return team1_abv
     elif team2_score > team1_score:
         print(f"{team2_abv} is favored to win.")
+        return team2_abv
     else:
         print("It's a tie!")
+        return None
