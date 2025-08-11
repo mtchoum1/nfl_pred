@@ -26,8 +26,7 @@ def load_teams_from_json(json_string, games_played=17):
             float(stats["Kicking"]["fgMade"]) * 3 +
             float(stats["Kicking"]["xpMade"]) * 1 +
             float(stats["Passing"].get("passingTwoPointConversion", 0)) * 2 +
-            float(stats["Rushing"].get("rushingTwoPointConversion", 0)) * 2 +
-            float(stats["Receiving"].get("receivingTwoPointConversion", 0)) * 2
+            float(stats["Rushing"].get("rushingTwoPointConversion", 0)) * 2
         )
         pyds_agst = float(stats["Defense"]["passingYardsAllowed"])
         ryds_agst = float(stats["Defense"]["rushingYardsAllowed"])
