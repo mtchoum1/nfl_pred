@@ -26,3 +26,9 @@ def expect_stat(stat_for, stat_agst):
 
 def get_weighted_stat(old_stat, new_stat, old_weight=0.2, new_weight=0.8):
     return (old_stat * old_weight) + (new_stat * new_weight)
+
+def zero_team():
+    """
+    Returns a Team object with all statistics set to zero and games set to 1.
+    """
+    return Team(0, 0, 0, 0, 0, 0, 0, 0, 1)
