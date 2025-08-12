@@ -48,6 +48,9 @@ except json.JSONDecodeError:
 new_teams = load_teams_from_csv('team_abv.csv')
 
 weekly_schedule_url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=1000&dates=2023&week="
+correct = 0
+total = 0
+
 
 for week in range(1, 19):  # Assuming 18 weeks in the season
     games_with_ids = []
@@ -75,9 +78,6 @@ for week in range(1, 19):  # Assuming 18 weeks in the season
             })
     except requests.exceptions.RequestException as e:
         print(f"Error fetching weekly schedule for week {week}: {e}")
-
-    correct = 0
-    total = 0
 
     for game in games_with_ids:
         game_id = game["gameID"]
