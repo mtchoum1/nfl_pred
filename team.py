@@ -69,45 +69,68 @@ def get_weighted_stat(old_stat, new_stat, old_weight=0.2, new_weight=0.8):
 
 def parse_game_json(game_data, team_objects):
     """
-    Parses NFL game data from a JSON object and updates the associated Team objects.
+    Parses NFL game data from a JSON object structure and updates the associated Team objects.
 
     Args:
         game_data (dict): A dictionary containing game statistics.
         team_objects (dict): A dictionary mapping team abbreviations to Team objects.
     """
     try:
-        body = game_data.get('body', {})
-        team_stats = body.get('teamStats', {})
-        line_score = body.get('lineScore', {})
+        # Navigate to the correct part of the JSON structure
+        boxscore_data = game_data.get('boxscore', {})
+        teams_data = boxscore_data.get('teams', [])
         
-        # Get data for home and away teams
-        home_abv = body['home']
-        away_abv = body['away']
-        
+        # Get team abbreviations from the header
+        header = game_data.get('header', {})
+        competitions = header.get('competitions', [])
+        if not competitions:
+            print("Error: No competitions found in game data.")
+            return
+
+        competitors = competitions[0].get('competitors', [])
+        if len(competitors) < 2:
+            print(f"Error: Not enough competitors found for game {header.get('id')}.")
+            return
+
+        # Identify home and away teams based on the 'homeAway' key
+        home_competitor_data = next((c for c in competitors if c.get('homeAway') == 'home'), None)
+        away_competitor_data = next((c for c in competitors if c.get('homeAway') == 'away'), None)
+
+        if not home_competitor_data or not away_competitor_data:
+            print(f"Error: Home or away competitor not found for game {header.get('id')}.")
+            return
+
+        home_abv = home_competitor_data['team']['abbreviation']
+        away_abv = away_competitor_data['team']['abbreviation']
+
+        # Find the correct team data within the list of teams in the boxscore
+        home_team_stats = {s['name']: s.get('displayValue', '0') for s in next((t['statistics'] for t in teams_data if t['team']['abbreviation'] == home_abv), [])}
+        away_team_stats = {s['name']: s.get('displayValue', '0') for s in next((t['statistics'] for t in teams_data if t['team']['abbreviation'] == away_abv), [])}
+
+        if not home_team_stats or not away_team_stats:
+            print(f"Error: Team stats not found for {home_abv} or {away_abv}.")
+            return
+
         # Check if team objects exist
         if home_abv not in team_objects or away_abv not in team_objects:
             print(f"Error: Team objects for {home_abv} or {away_abv} not found.")
             return
 
-        home_team_stats = team_stats.get('home', {})
-        away_team_stats = team_stats.get('away', {})
+        # Extract and convert stats for the away team
+        away_pyds_for = float(away_team_stats.get('netPassingYards', 0))
+        away_ryds_for = float(away_team_stats.get('rushingYards', 0))
+        away_points_for = float(away_competitor_data.get('score', 0))
+        away_giveaways = float(away_team_stats.get('turnovers', 0))
         
-        home_line_score = line_score.get('home', {})
-        away_line_score = line_score.get('away', {})
+        # Extract and convert stats for the home team
+        home_pyds_for = float(home_team_stats.get('netPassingYards', 0))
+        home_ryds_for = float(home_team_stats.get('rushingYards', 0))
+        home_points_for = float(home_competitor_data.get('score', 0))
+        home_giveaways = float(home_team_stats.get('turnovers', 0))
 
-        # Extract stats for the away team
-        away_pyds_for = float(away_team_stats.get('passingYards', '0'))
-        away_ryds_for = float(away_team_stats.get('rushingYards', '0'))
-        away_points_for = float(away_line_score.get('totalPts', '0'))
-        away_takeaways = float(away_team_stats.get('defensiveInterceptions', '0')) + float(body['DST']['away'].get('fumblesRecovered', '0'))
-        away_giveaways = float(away_team_stats.get('interceptionsThrown', '0')) + float(away_team_stats.get('fumblesLost', '0'))
-
-        # Extract stats for the home team
-        home_pyds_for = float(home_team_stats.get('passingYards', '0'))
-        home_ryds_for = float(home_team_stats.get('rushingYards', '0'))
-        home_points_for = float(home_line_score.get('totalPts', '0'))
-        home_takeaways = float(home_team_stats.get('defensiveInterceptions', '0')) + float(body['DST']['home'].get('fumblesRecovered', '0'))
-        home_giveaways = float(home_team_stats.get('interceptionsThrown', '0')) + float(home_team_stats.get('fumblesLost', '0'))
+        # Infer takeaways from opponent's giveaways
+        away_takeaways = home_giveaways
+        home_takeaways = away_giveaways
 
         # Assign yards and points against based on the opponent's stats
         away_pyds_agst = home_pyds_for
@@ -147,5 +170,5 @@ def parse_game_json(game_data, team_objects):
 
         print(f"Updated stats for {away_abv} and {home_abv} based on game data.")
 
-    except (KeyError, ValueError) as e:
-        print(f"Error parsing game data: {e}")
+    except (KeyError, ValueError, IndexError) as e:
+        print(f"Error parsing game data for game {game_data.get('header', {}).get('id', 'unknown')}: {e}")
