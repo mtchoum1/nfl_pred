@@ -39,25 +39,38 @@ def calculate_pythagorean_wins(expected_stats_team1, expected_stats_team2):
     return total_pyth_win / len(categories)
 
 def predict_winner(team1_abv, team2_abv, teamsold_dict, teamsnew_dict):
+    """
+    Predicts the winner of a game and returns the winner and win probabilities.
+    Returns:
+        tuple: (winner_abbreviation, team1_probability, team2_probability)
+    """
     if team1_abv not in teamsold_dict or team1_abv not in teamsnew_dict:
         print(f"Error: Team abbreviation '{team1_abv}' not found in data.")
-        return
+        return None, 0, 0
     if team2_abv not in teamsold_dict or team2_abv not in teamsnew_dict:
         print(f"Error: Team abbreviation '{team2_abv}' not found in data.")
-        return
+        return None, 0, 0
+        
     expected_stats = calculate_expected_stats(
         teamsold_dict[team1_abv], teamsnew_dict[team1_abv],
         teamsold_dict[team2_abv], teamsnew_dict[team2_abv]
     )
+    
     team1_score = calculate_pythagorean_wins(expected_stats["team1"], expected_stats["team2"])
-    team2_score = calculate_pythagorean_wins(expected_stats["team2"], expected_stats["team1"])
+    team2_score = 1 - team1_score # The probabilities should sum to 1
+
     print(f"{team1_abv}: {team1_score * 100:.2f}% | {team2_abv}: {team2_score * 100:.2f}%")
+    
+    winner = None
     if team1_score > team2_score:
+        winner = team1_abv
         print(f"{team1_abv} is favored to win.")
-        return team1_abv
     elif team2_score > team1_score:
+        winner = team2_abv
         print(f"{team2_abv} is favored to win.")
-        return team2_abv
     else:
         print("It's a tie!")
-        return None
+        # In a tie, you could decide how to handle it. Here we arbitrarily pick team1.
+        winner = team1_abv 
+
+    return winner, team1_score, team2_score
