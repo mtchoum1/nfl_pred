@@ -1,3 +1,4 @@
+import random
 from team import pyth_win, expect_stat, get_weighted_stat
 
 def calculate_expected_stats(team1_data_old, team1_data_new, team2_data_old, team2_data_new):
@@ -71,6 +72,6 @@ def predict_winner(team1_abv, team2_abv, teamsold_dict, teamsnew_dict):
     else:
         print("It's a tie!")
         # In a tie, you could decide how to handle it. Here we arbitrarily pick team1.
-        winner = team1_abv 
+        winner = random.choice([team1_abv, team2_abv])
 
     return winner, team1_score, team2_score
