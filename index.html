@@ -1,1 +1,235 @@
-<h1>Hello World!</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL Game Predictor</title>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+    <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap)" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .team-logo {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+        .winner-badge {
+            font-size: 0.7rem;
+            padding: 0.1rem 0.4rem;
+        }
+        .correct-prediction {
+            border-left: 4px solid #22c55e; /* green-500 */
+        }
+        .incorrect-prediction {
+            border-left: 4px solid #ef4444; /* red-500 */
+        }
+        .pending-prediction {
+            border-left: 4px solid #eab308; /* yellow-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">NFL Game Predictor</h1>
+            <p class="text-gray-600 mt-2">Weekly predictions powered by statistical analysis.</p>
+        </header>
+
+        <!-- Controls -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div>
+                <label for="year-select" class="font-semibold text-gray-700">Year:</label>
+                <select id="year-select" class="mt-1 block w-full sm:w-auto rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <!-- Options will be populated by JS -->
+                </select>
+            </div>
+            <div>
+                <label for="week-select" class="font-semibold text-gray-700">Week:</label>
+                <select id="week-select" class="mt-1 block w-full sm:w-auto rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <!-- Options will be populated by JS -->
+                </select>
+            </div>
+        </div>
+        
+        <!-- Accuracy Summary -->
+        <div id="accuracy-summary" class="bg-white rounded-lg shadow-md p-6 mb-8 text-center hidden">
+             <h2 class="text-2xl font-bold text-gray-800">Weekly Accuracy</h2>
+             <p class="text-5xl font-extrabold text-indigo-600 mt-2">
+                <span id="correct-count">0</span> / <span id="total-count">0</span>
+             </p>
+             <p class="text-xl text-gray-600 font-semibold mt-1">
+                (<span id="percentage">0.00</span>%)
+             </p>
+        </div>
+
+
+        <!-- Loading Spinner -->
+        <div id="loader" class="text-center py-12 hidden">
+             <svg class="animate-spin h-10 w-10 text-indigo-600 mx-auto" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-4 text-gray-600">Fetching predictions...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md hidden" role="alert">
+            <p class="font-bold">Error</p>
+            <p id="error-text"></p>
+        </div>
+
+
+        <!-- Game Schedule Grid -->
+        <div id="schedule-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Game cards will be inserted here by JavaScript -->
+        </div>
+
+    </div>
+
+    <script>
+        const yearSelect = document.getElementById('year-select');
+        const weekSelect = document.getElementById('week-select');
+        const scheduleGrid = document.getElementById('schedule-grid');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const accuracySummary = document.getElementById('accuracy-summary');
+
+        // --- Populate Selectors ---
+        function populateSelectors() {
+            const currentYear = new Date().getFullYear();
+            // Years
+            for (let year = currentYear; year >= 2022; year--) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            }
+            // Weeks
+            for (let week = 1; week <= 18; week++) {
+                const option = document.createElement('option');
+                option.value = week;
+                option.textContent = `Week ${week}`;
+                weekSelect.appendChild(option);
+            }
+        }
+
+        // --- Fetch and Display Predictions ---
+        async function fetchPredictions() {
+            const year = yearSelect.value;
+            const week = weekSelect.value;
+
+            // Show loader and hide content/errors
+            loader.classList.remove('hidden');
+            scheduleGrid.innerHTML = '';
+            errorMessage.classList.add('hidden');
+            accuracySummary.classList.add('hidden');
+
+
+            try {
+                const response = await fetch(`/api/predict/${year}/${week}`);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                displayGames(data.games);
+                displayAccuracy(data.accuracy);
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                errorText.textContent = error.message;
+                errorMessage.classList.remove('hidden');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+        
+        // --- Display Accuracy ---
+        function displayAccuracy(accuracy) {
+            if (accuracy && accuracy.total > 0) {
+                document.getElementById('correct-count').textContent = accuracy.correct;
+                document.getElementById('total-count').textContent = accuracy.total;
+                document.getElementById('percentage').textContent = accuracy.percentage.toFixed(2);
+                accuracySummary.classList.remove('hidden');
+            }
+        }
+
+        // --- Display Game Cards ---
+        function displayGames(games) {
+            if (!games || games.length === 0) {
+                 scheduleGrid.innerHTML = `<p class="text-center col-span-full text-gray-500">No games found for this week.</p>`;
+                 return;
+            }
+            
+            games.forEach(game => {
+                const gameCard = document.createElement('div');
+                
+                let predictionBorderClass = 'pending-prediction';
+                if (game.is_correct === true) {
+                    predictionBorderClass = 'correct-prediction';
+                } else if (game.is_correct === false) {
+                    predictionBorderClass = 'incorrect-prediction';
+                }
+
+                gameCard.className = `bg-white rounded-lg shadow-md overflow-hidden ${predictionBorderClass}`;
+
+                const gameDate = new Date(game.date).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+
+                gameCard.innerHTML = `
+                    <div class="p-4">
+                        <p class="text-sm text-gray-500 text-center mb-2">${gameDate}</p>
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-3 w-1/3">
+                                <img src="${game.away_team.logo}" alt="${game.away_team.abbreviation}" class="team-logo">
+                                <span class="font-bold text-lg">${game.away_team.abbreviation}</span>
+                            </div>
+                            <div class="text-2xl font-bold text-center">
+                                ${game.status.toLowerCase().includes('final') ? `${game.away_team.score} - ${game.home_team.score}` : 'vs'}
+                            </div>
+                            <div class="flex items-center gap-3 w-1/3 justify-end">
+                                <span class="font-bold text-lg">${game.home_team.abbreviation}</span>
+                                <img src="${game.home_team.logo}" alt="${game.home_team.abbreviation}" class="team-logo">
+                            </div>
+                        </div>
+                         <div class="text-xs text-center text-gray-500">${game.status}</div>
+                    </div>
+                    <div class="bg-gray-50 p-3">
+                        <div class="text-center">
+                            <span class="font-semibold">Prediction: </span>
+                            <span class="font-bold text-indigo-600">${game.predicted_winner || 'N/A'}</span>
+                            ${getPredictionBadge(game)}
+                        </div>
+                    </div>
+                `;
+                scheduleGrid.appendChild(gameCard);
+            });
+        }
+        
+        function getPredictionBadge(game) {
+            if (game.is_correct === true) {
+                return `<span class="ml-2 inline-block bg-green-100 text-green-800 rounded-full winner-badge">Correct</span>`;
+            }
+            if (game.is_correct === false) {
+                return `<span class="ml-2 inline-block bg-red-100 text-red-800 rounded-full winner-badge">Incorrect</span>`;
+            }
+            return '';
+        }
+
+        // --- Initial Load & Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            populateSelectors();
+            fetchPredictions(); // Fetch for the default selected week on page load
+        });
+
+        yearSelect.addEventListener('change', fetchPredictions);
+        weekSelect.addEventListener('change', fetchPredictions);
+
+    </script>
+</body>
+</html>
