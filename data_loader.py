@@ -27,7 +27,7 @@ def save_teams_to_csv(teams, filename):
     Save the teams dictionary to a CSV file with the correct columns.
     """
     fieldnames = [
-        'Team', 'Team_Abv', 'Total_GamesPlayed', 'Total_PassingYardsFor', 'Total_PassingYardsAgainst',
+        'Team_Abv', 'Total_GamesPlayed', 'Total_PassingYardsFor', 'Total_PassingYardsAgainst',
         'Total_RushingYardsFor', 'Total_RushingYardsAgainst', 'Total_Takeaways', 'Total_Giveaways',
         'Total_PointsFor', 'Total_PointsAgainst'
     ]
@@ -35,17 +35,16 @@ def save_teams_to_csv(teams, filename):
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         for abv, team in teams.items():
-            # Assume team object has attributes matching the columns
             row = {
                 'Team_Abv': abv,
-                'Total_GamesPlayed': getattr(team, 'games_played', 0),
-                'Total_PassingYardsFor': getattr(team, 'total_passing_yards_for', 0),
-                'Total_PassingYardsAgainst': getattr(team, 'total_passing_yards_against', 0),
-                'Total_RushingYardsFor': getattr(team, 'total_rushing_yards_for', 0),
-                'Total_RushingYardsAgainst': getattr(team, 'total_rushing_yards_against', 0),
-                'Total_Takeaways': getattr(team, 'total_takeaways', 0),
-                'Total_Giveaways': getattr(team, 'total_giveaways', 0),
-                'Total_PointsFor': getattr(team, 'total_points_for', 0),
-                'Total_PointsAgainst': getattr(team, 'total_points_against', 0),
+                'Total_GamesPlayed': team.games,
+                'Total_PassingYardsFor': team.pyds_for,
+                'Total_PassingYardsAgainst': team.pyds_agst,
+                'Total_RushingYardsFor': team.ryds_for,
+                'Total_RushingYardsAgainst': team.ryds_agst,
+                'Total_Takeaways': team.takeaways,
+                'Total_Giveaways': team.giveaways,
+                'Total_PointsFor': team.points_for,
+                'Total_PointsAgainst': team.points_agst,
             }
             writer.writerow(row)
