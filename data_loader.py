@@ -1,5 +1,4 @@
 import csv
-import json
 from team import Team
 
 def load_teams_from_csv(filepath):
@@ -9,15 +8,17 @@ def load_teams_from_csv(filepath):
         for row in reader:
             name = row['Team_Abv']
             t = Team(
-                float(row.get('Total_PassingYardsFor', 0)),
-                float(row.get('Total_PassingYardsAgainst', 0)),
-                float(row.get('Total_RushingYardsFor', 0)),
-                float(row.get('Total_RushingYardsAgainst', 0)),
-                float(row.get('Total_Takeaways', 0)),
-                float(row.get('Total_Giveaways', 0)),
-                float(row.get('Total_PointsFor', 0)),
-                float(row.get('Total_PointsAgainst', 0)),
-                float(row.get('Total_GamesPlayed', 0))
+                pyds_for=float(row.get('Total_PassingYardsFor', 0)),
+                pyds_agst=float(row.get('Total_PassingYardsAgainst', 0)),
+                ryds_for=float(row.get('Total_RushingYardsFor', 0)),
+                ryds_agst=float(row.get('Total_RushingYardsAgainst', 0)),
+                takeaways=float(row.get('Total_Takeaways', 0)),
+                giveaways=float(row.get('Total_Giveaways', 0)),
+                points_for=float(row.get('Total_PointsFor', 0)),
+                points_agst=float(row.get('Total_PointsAgainst', 0)),
+                pass_attempts=float(row.get('Total_PassAttempts', 0)),
+                rush_attempts=float(row.get('Total_RushAttempts', 0)),
+                games=float(row.get('Total_GamesPlayed', 0))
             )
             teams[name] = t
     return teams
@@ -29,7 +30,7 @@ def save_teams_to_csv(teams, filename):
     fieldnames = [
         'Team_Abv', 'Total_GamesPlayed', 'Total_PassingYardsFor', 'Total_PassingYardsAgainst',
         'Total_RushingYardsFor', 'Total_RushingYardsAgainst', 'Total_Takeaways', 'Total_Giveaways',
-        'Total_PointsFor', 'Total_PointsAgainst'
+        'Total_PointsFor', 'Total_PointsAgainst', 'Total_PassAttempts', 'Total_RushAttempts'
     ]
     with open(filename, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -46,5 +47,7 @@ def save_teams_to_csv(teams, filename):
                 'Total_Giveaways': team.giveaways,
                 'Total_PointsFor': team.points_for,
                 'Total_PointsAgainst': team.points_agst,
+                'Total_PassAttempts': team.pass_attempts,
+                'Total_RushAttempts': team.rush_attempts
             }
             writer.writerow(row)

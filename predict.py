@@ -3,33 +3,65 @@ from team import pyth_win, expect_stat, get_weighted_stat
 
 def calculate_expected_stats(team1_data_old, team1_data_new, team2_data_old, team2_data_new):
     expected_stats = {"team1": {}, "team2": {}}
+    
+    # --- Define Thresholds ---
+    # These values are estimates for "pass-heavy", "run-heavy", "bad pass D", and "bad rush D"
+    PASS_HEAVY_THRESHOLD = 0.58  # More than 58% of plays are passes
+    RUN_HEAVY_THRESHOLD = 0.48   # More than 48% of plays are rushes
+    BAD_PASS_DEF_THRESHOLD = 235 # Giving up more than 235 pass yards/game
+    BAD_RUSH_DEF_THRESHOLD = 125 # Giving up more than 125 rush yards/game
+    OFFENSIVE_BOOST = 1.05       # 5% boost for a favorable matchup
+
+    # --- Get Weighted Averages ---
     # Team 1
-    team1_pyds_for_weighted = get_weighted_stat(team1_data_old.avg_pyds_for, team1_data_new.avg_pyds_for)
-    team1_pyds_agst_weighted = get_weighted_stat(team1_data_old.avg_pyds_agst, team1_data_new.avg_pyds_agst)
-    team1_ryds_for_weighted = get_weighted_stat(team1_data_old.avg_ryds_for, team1_data_new.avg_ryds_for)
-    team1_ryds_agst_weighted = get_weighted_stat(team1_data_old.avg_ryds_agst, team1_data_new.avg_ryds_agst)
-    team1_takeaways_weighted = get_weighted_stat(team1_data_old.avg_takeaways, team1_data_new.avg_takeaways)
-    team1_giveaways_weighted = get_weighted_stat(team1_data_old.avg_giveaways, team1_data_new.avg_giveaways)
-    team1_points_for_weighted = get_weighted_stat(team1_data_old.avg_points_for, team1_data_new.avg_points_for)
-    team1_points_agst_weighted = get_weighted_stat(team1_data_old.avg_points_agst, team1_data_new.avg_points_agst)
+    t1_pyds_for = get_weighted_stat(team1_data_old.avg_pyds_for, team1_data_new.avg_pyds_for)
+    t1_pyds_agst = get_weighted_stat(team1_data_old.avg_pyds_agst, team1_data_new.avg_pyds_agst)
+    t1_ryds_for = get_weighted_stat(team1_data_old.avg_ryds_for, team1_data_new.avg_ryds_for)
+    t1_ryds_agst = get_weighted_stat(team1_data_old.avg_ryds_agst, team1_data_new.avg_ryds_agst)
     # Team 2
-    team2_pyds_for_weighted = get_weighted_stat(team2_data_old.avg_pyds_for, team2_data_new.avg_pyds_for)
-    team2_pyds_agst_weighted = get_weighted_stat(team2_data_old.avg_pyds_agst, team2_data_new.avg_pyds_agst)
-    team2_ryds_for_weighted = get_weighted_stat(team2_data_old.avg_ryds_for, team2_data_new.avg_ryds_for)
-    team2_ryds_agst_weighted = get_weighted_stat(team2_data_old.avg_ryds_agst, team2_data_new.avg_ryds_agst)
-    team2_takeaways_weighted = get_weighted_stat(team2_data_old.avg_takeaways, team2_data_new.avg_takeaways)
-    team2_giveaways_weighted = get_weighted_stat(team2_data_old.avg_giveaways, team2_data_new.avg_giveaways)
-    team2_points_for_weighted = get_weighted_stat(team2_data_old.avg_points_for, team2_data_new.avg_points_for)
-    team2_points_agst_weighted = get_weighted_stat(team2_data_old.avg_points_agst, team2_data_new.avg_points_agst)
-    # Expectations
-    expected_stats["team1"]["pyds"] = expect_stat(team1_pyds_for_weighted, team2_pyds_agst_weighted)
-    expected_stats["team2"]["pyds"] = expect_stat(team2_pyds_for_weighted, team1_pyds_agst_weighted)
-    expected_stats["team1"]["ryds"] = expect_stat(team1_ryds_for_weighted, team2_ryds_agst_weighted)
-    expected_stats["team2"]["ryds"] = expect_stat(team2_ryds_for_weighted, team1_ryds_agst_weighted)
-    expected_stats["team1"]["takeaways"] = expect_stat(team1_takeaways_weighted, team2_giveaways_weighted)
-    expected_stats["team2"]["takeaways"] = expect_stat(team2_takeaways_weighted, team1_giveaways_weighted)
-    expected_stats["team1"]["points"] = expect_stat(team1_points_for_weighted, team2_points_agst_weighted)
-    expected_stats["team2"]["points"] = expect_stat(team2_points_for_weighted, team1_points_agst_weighted)
+    t2_pyds_for = get_weighted_stat(team2_data_old.avg_pyds_for, team2_data_new.avg_pyds_for)
+    t2_pyds_agst = get_weighted_stat(team2_data_old.avg_pyds_agst, team2_data_new.avg_pyds_agst)
+    t2_ryds_for = get_weighted_stat(team2_data_old.avg_ryds_for, team2_data_new.avg_ryds_for)
+    t2_ryds_agst = get_weighted_stat(team2_data_old.avg_ryds_agst, team2_data_new.avg_ryds_agst)
+
+    # --- Calculate Tendencies (from new data only) ---
+    t1_total_plays = team1_data_new.avg_pass_attempts + team1_data_new.avg_rush_attempts
+    t1_pass_tendency = team1_data_new.avg_pass_attempts / t1_total_plays if t1_total_plays > 0 else 0.5
+    t1_rush_tendency = 1 - t1_pass_tendency
+
+    t2_total_plays = team2_data_new.avg_pass_attempts + team2_data_new.avg_rush_attempts
+    t2_pass_tendency = team2_data_new.avg_pass_attempts / t2_total_plays if t2_total_plays > 0 else 0.5
+    t2_rush_tendency = 1 - t2_pass_tendency
+
+    # --- Apply Boosts for Favorable Matchups ---
+    t1_pyds_boost = 1.0
+    if t1_pass_tendency > PASS_HEAVY_THRESHOLD and t2_pyds_agst > BAD_PASS_DEF_THRESHOLD:
+        t1_pyds_boost = OFFENSIVE_BOOST
+        
+    t1_ryds_boost = 1.0
+    if t1_rush_tendency > RUN_HEAVY_THRESHOLD and t2_ryds_agst > BAD_RUSH_DEF_THRESHOLD:
+        t1_ryds_boost = OFFENSIVE_BOOST
+
+    t2_pyds_boost = 1.0
+    if t2_pass_tendency > PASS_HEAVY_THRESHOLD and t1_pyds_agst > BAD_PASS_DEF_THRESHOLD:
+        t2_pyds_boost = OFFENSIVE_BOOST
+
+    t2_ryds_boost = 1.0
+    if t2_rush_tendency > RUN_HEAVY_THRESHOLD and t1_ryds_agst > BAD_RUSH_DEF_THRESHOLD:
+        t2_ryds_boost = OFFENSIVE_BOOST
+
+    # --- Calculate Final Expected Stats ---
+    expected_stats["team1"]["pyds"] = expect_stat(t1_pyds_for * t1_pyds_boost, t2_pyds_agst)
+    expected_stats["team2"]["pyds"] = expect_stat(t2_pyds_for * t2_pyds_boost, t1_pyds_agst)
+    expected_stats["team1"]["ryds"] = expect_stat(t1_ryds_for * t1_ryds_boost, t2_ryds_agst)
+    expected_stats["team2"]["ryds"] = expect_stat(t2_ryds_for * t2_ryds_boost, t1_ryds_agst)
+
+    # Turnovers and points remain unboosted
+    expected_stats["team1"]["takeaways"] = expect_stat(get_weighted_stat(team1_data_old.avg_takeaways, team1_data_new.avg_takeaways), get_weighted_stat(team2_data_old.avg_giveaways, team2_data_new.avg_giveaways))
+    expected_stats["team2"]["takeaways"] = expect_stat(get_weighted_stat(team2_data_old.avg_takeaways, team2_data_new.avg_takeaways), get_weighted_stat(team1_data_old.avg_giveaways, team1_data_new.avg_giveaways))
+    expected_stats["team1"]["points"] = expect_stat(get_weighted_stat(team1_data_old.avg_points_for, team1_data_new.avg_points_for), get_weighted_stat(team2_data_old.avg_points_agst, team2_data_new.avg_points_agst))
+    expected_stats["team2"]["points"] = expect_stat(get_weighted_stat(team2_data_old.avg_points_for, team2_data_new.avg_points_for), get_weighted_stat(team1_data_old.avg_points_agst, team1_data_new.avg_points_agst))
+    
     return expected_stats
 
 def calculate_pythagorean_wins(expected_stats_team1, expected_stats_team2):
@@ -40,16 +72,7 @@ def calculate_pythagorean_wins(expected_stats_team1, expected_stats_team2):
     return total_pyth_win / len(categories)
 
 def predict_winner(team1_abv, team2_abv, teamsold_dict, teamsnew_dict):
-    """
-    Predicts the winner of a game and returns the winner and win probabilities.
-    Returns:
-        tuple: (winner_abbreviation, team1_probability, team2_probability)
-    """
-    if team1_abv not in teamsold_dict or team1_abv not in teamsnew_dict:
-        print(f"Error: Team abbreviation '{team1_abv}' not found in data.")
-        return None, 0, 0
-    if team2_abv not in teamsold_dict or team2_abv not in teamsnew_dict:
-        print(f"Error: Team abbreviation '{team2_abv}' not found in data.")
+    if team1_abv not in teamsold_dict or team2_abv not in teamsold_dict:
         return None, 0, 0
         
     expected_stats = calculate_expected_stats(
@@ -58,20 +81,12 @@ def predict_winner(team1_abv, team2_abv, teamsold_dict, teamsnew_dict):
     )
     
     team1_score = calculate_pythagorean_wins(expected_stats["team1"], expected_stats["team2"])
-    team2_score = 1 - team1_score # The probabilities should sum to 1
+    team2_score = 1 - team1_score
 
     print(f"{team1_abv}: {team1_score * 100:.2f}% | {team2_abv}: {team2_score * 100:.2f}%")
     
-    winner = None
-    if team1_score > team2_score:
-        winner = team1_abv
-        print(f"{team1_abv} is favored to win.")
-    elif team2_score > team1_score:
-        winner = team2_abv
-        print(f"{team2_abv} is favored to win.")
-    else:
-        print("It's a tie!")
-        # In a tie, you could decide how to handle it. Here we arbitrarily pick team1.
+    winner = team1_abv if team1_score > team2_score else team2_abv
+    if team1_score == team2_score:
         winner = random.choice([team1_abv, team2_abv])
 
     return winner, team1_score, team2_score
