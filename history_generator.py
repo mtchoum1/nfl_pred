@@ -62,7 +62,7 @@ def generate_prediction_history():
                         home_team_abv = home_team_data.get('team', {}).get('abbreviation')
                         away_team_abv = away_team_data.get('team', {}).get('abbreviation')
 
-                        predicted_winner, team1_prob, team2_prob = predict_winner(home_team_abv, away_team_abv, old_teams, new_teams)
+                        predicted_winner, team1_prob, team2_prob = predict_winner(home_team_abv, away_team_abv, old_teams, new_teams, week, home_team_abv)
                         
                         home_prob = team1_prob
                         away_prob = team2_prob
