@@ -5,11 +5,10 @@ def calculate_expected_stats(team1_data_old, team1_data_new, team2_data_old, tea
     expected_stats = {"team1": {}, "team2": {}}
     
     # --- Define Thresholds and Constants ---
-    PASS_HEAVY_THRESHOLD = 0.58
-    RUN_HEAVY_THRESHOLD = 0.48
+    PASS_HEAVY_THRESHOLD = 0.55
+    RUN_HEAVY_THRESHOLD = 0.45
     BAD_PASS_DEF_THRESHOLD = 235
     BAD_RUSH_DEF_THRESHOLD = 125
-    OFFENSIVE_BOOST = 1.05
     HOME_FIELD_ADVANTAGE_POINTS = 2.5 # Average point advantage for home teams
 
     # --- Get Weighted Averages using Dynamic Weighting ---

@@ -78,7 +78,7 @@ def pyth_win(val_for, val_agst):
     """
     if val_for + val_agst == 0:
         return 0.5
-    return val_for**2 / (val_for**2 + val_agst**2)
+    return val_for**2.37 / (val_for**2.37 + val_agst**2.37)
 
 def expect_stat(off_stat, def_stat):
     """
