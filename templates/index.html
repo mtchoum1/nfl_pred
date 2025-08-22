@@ -3,78 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NFL Game Predictor</title>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
-    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
-    <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap)" rel="stylesheet">
+    <title>Smore Sports - NFL Predictions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Roboto', sans-serif;
+            background-color: #f3f4f6; /* gray-100 */
         }
         .team-logo {
-            width: 48px;
-            height: 48px;
+            width: 40px;
+            height: 40px;
             object-fit: contain;
         }
-        .winner-badge {
-            font-size: 0.7rem;
-            padding: 0.1rem 0.4rem;
+        .game-card {
+            border: 1px solid #e5e7eb; /* gray-200 */
+            transition: all 0.2s ease-in-out;
+        }
+        .game-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
         .correct-prediction {
+            background-color: #f0fdf4; /* green-50 */
             border-left: 4px solid #22c55e; /* green-500 */
         }
         .incorrect-prediction {
+            background-color: #fef2f2; /* red-50 */
             border-left: 4px solid #ef4444; /* red-500 */
         }
         .pending-prediction {
-            border-left: 4px solid #eab308; /* yellow-500 */
+             border-left: 4px solid #eab308; /* yellow-500 */
+        }
+        .prob-bar-bg {
+            background-color: #e5e7eb; /* gray-200 */
+        }
+        .prob-bar-away {
+            background-color: #6366f1; /* indigo-500 */
+        }
+        .prob-bar-home {
+            background-color: #ec4899; /* pink-500 */
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="text-gray-800">
 
-    <div class="container mx-auto p-4 md:p-8">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">NFL Game Predictor</h1>
-            <p class="text-gray-600 mt-2">Weekly predictions powered by statistical analysis.</p>
-        </header>
+    <!-- Header / Navbar -->
+    <header class="bg-white shadow-md sticky top-0 z-10">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-black text-2xl text-gray-900">SMORE</span>
+                    <span class="font-bold text-2xl text-orange-500">SPORTS</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#" class="bg-gray-900 text-white px-3 py-2 rounded-md text-sm font-medium" aria-current="page">NFL Predictions</a>
+                        <a href="#" class="text-gray-500 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Scores</a>
+                        <a href="#" class="text-gray-500 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Stats</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
 
-        <!-- Controls -->
-        <div class="bg-white rounded-lg shadow-md p-4 mb-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <div>
-                <label for="year-select" class="font-semibold text-gray-700">Year:</label>
-                <select id="year-select" class="mt-1 block w-full sm:w-auto rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                    <!-- Options will be populated by JS -->
-                </select>
-            </div>
-            <div>
-                <label for="week-select" class="font-semibold text-gray-700">Week:</label>
-                <select id="week-select" class="mt-1 block w-full sm:w-auto rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                    <!-- Options will be populated by JS -->
-                </select>
-            </div>
-        </div>
-        
-        <!-- Accuracy Summary -->
-        <div id="accuracy-summary" class="bg-white rounded-lg shadow-md p-6 mb-8 text-center hidden">
-             <h2 class="text-2xl font-bold text-gray-800">Weekly Accuracy</h2>
-             <p class="text-5xl font-extrabold text-indigo-600 mt-2">
-                <span id="correct-count">0</span> / <span id="total-count">0</span>
-             </p>
-             <p class="text-xl text-gray-600 font-semibold mt-1">
-                (<span id="percentage">0.00</span>%)
-             </p>
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Page Title -->
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">NFL Weekly Predictions</h1>
         </div>
 
+        <!-- Controls & Accuracy -->
+        <div class="bg-white rounded-lg shadow p-4 mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-4">
+                <div>
+                    <label for="year-select" class="text-sm font-medium text-gray-700">Year:</label>
+                    <select id="year-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"></select>
+                </div>
+                <div>
+                    <label for="week-select" class="text-sm font-medium text-gray-700">Week:</label>
+                    <select id="week-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"></select>
+                </div>
+            </div>
+            <div id="accuracy-summary" class="text-center md:text-right hidden">
+                 <h2 class="text-sm font-medium text-gray-500">Weekly Accuracy</h2>
+                 <p class="text-2xl font-bold text-gray-800">
+                    <span id="correct-count">0</span> / <span id="total-count">0</span>
+                    (<span id="percentage">0.00</span>%)
+                 </p>
+            </div>
+        </div>
 
         <!-- Loading Spinner -->
         <div id="loader" class="text-center py-12 hidden">
-             <svg class="animate-spin h-10 w-10 text-indigo-600 mx-auto" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24">
+             <svg class="animate-spin h-8 w-8 text-orange-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p class="mt-4 text-gray-600">Fetching predictions...</p>
+            <p class="mt-3 text-gray-600 font-medium">Fetching Predictions...</p>
         </div>
 
         <!-- Error Message -->
@@ -83,13 +111,17 @@
             <p id="error-text"></p>
         </div>
 
-
         <!-- Game Schedule Grid -->
-        <div id="schedule-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="schedule-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             <!-- Game cards will be inserted here by JavaScript -->
         </div>
+    </main>
 
-    </div>
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto py-4 px-6 text-center text-sm">
+            &copy; 2025 Smore Sports. All Rights Reserved.
+        </div>
+    </footer>
 
     <script>
         const yearSelect = document.getElementById('year-select');
@@ -100,17 +132,15 @@
         const errorText = document.getElementById('error-text');
         const accuracySummary = document.getElementById('accuracy-summary');
 
-        // --- Populate Selectors ---
         function populateSelectors() {
             const currentYear = new Date().getFullYear();
-            // Years
-            for (let year = currentYear; year >= 2022; year--) {
+            for (let year = currentYear + 1; year >= 2022; year--) {
                 const option = document.createElement('option');
                 option.value = year;
                 option.textContent = year;
+                if (year === currentYear) option.selected = true;
                 yearSelect.appendChild(option);
             }
-            // Weeks
             for (let week = 1; week <= 18; week++) {
                 const option = document.createElement('option');
                 option.value = week;
@@ -119,17 +149,13 @@
             }
         }
 
-        // --- Fetch and Display Predictions ---
         async function fetchPredictions() {
             const year = yearSelect.value;
             const week = weekSelect.value;
-
-            // Show loader and hide content/errors
             loader.classList.remove('hidden');
             scheduleGrid.innerHTML = '';
             errorMessage.classList.add('hidden');
             accuracySummary.classList.add('hidden');
-
 
             try {
                 const response = await fetch(`/api/predict/${year}/${week}`);
@@ -140,7 +166,6 @@
                 const data = await response.json();
                 displayGames(data.games);
                 displayAccuracy(data.accuracy);
-
             } catch (error) {
                 console.error('Fetch error:', error);
                 errorText.textContent = error.message;
@@ -150,7 +175,6 @@
             }
         }
         
-        // --- Display Accuracy ---
         function displayAccuracy(accuracy) {
             if (accuracy && accuracy.total > 0) {
                 document.getElementById('correct-count').textContent = accuracy.correct;
@@ -160,50 +184,62 @@
             }
         }
 
-        // --- Display Game Cards ---
         function displayGames(games) {
             if (!games || games.length === 0) {
-                 scheduleGrid.innerHTML = `<p class="text-center col-span-full text-gray-500">No games found for this week.</p>`;
+                 scheduleGrid.innerHTML = `<div class="col-span-full text-center bg-white rounded-lg shadow p-8">
+                                              <h3 class="text-xl font-semibold text-gray-700">No Games Found</h3>
+                                              <p class="text-gray-500 mt-2">The schedule for this week may not be available yet.</p>
+                                           </div>`;
                  return;
             }
             
             games.forEach(game => {
                 const gameCard = document.createElement('div');
-                
                 let predictionBorderClass = 'pending-prediction';
-                if (game.is_correct === true) {
-                    predictionBorderClass = 'correct-prediction';
-                } else if (game.is_correct === false) {
-                    predictionBorderClass = 'incorrect-prediction';
-                }
-
-                gameCard.className = `bg-white rounded-lg shadow-md overflow-hidden ${predictionBorderClass}`;
+                if (game.is_correct === true) predictionBorderClass = 'correct-prediction';
+                else if (game.is_correct === false) predictionBorderClass = 'incorrect-prediction';
+                gameCard.className = `bg-white rounded-lg shadow game-card ${predictionBorderClass}`;
 
                 const gameDate = new Date(game.date).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+                const awayProb = (game.away_team.win_probability * 100);
+                const homeProb = (game.home_team.win_probability * 100);
 
                 gameCard.innerHTML = `
+                    <div class="p-4 border-b border-gray-200">
+                        <div class="flex justify-between items-center text-xs text-gray-500">
+                            <span>${game.name}</span>
+                            <span>${game.status}</span>
+                        </div>
+                    </div>
                     <div class="p-4">
-                        <p class="text-sm text-gray-500 text-center mb-2">${gameDate}</p>
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-3 w-1/3">
-                                <img src="${game.away_team.logo}" alt="${game.away_team.abbreviation}" class="team-logo">
-                                <span class="font-bold text-lg">${game.away_team.abbreviation}</span>
+                        <div class="grid grid-cols-3 items-center text-center">
+                            <!-- Away Team -->
+                            <div class="flex flex-col items-center">
+                                <img src="${game.away_team.logo}" alt="${game.away_team.abbreviation}" class="team-logo mb-2" onerror="this.src='https://placehold.co/40x40/cccccc/ffffff?text=?'">
+                                <span class="font-bold text-gray-800">${game.away_team.abbreviation}</span>
+                                <span class="text-sm text-gray-500">Away</span>
                             </div>
-                            <div class="text-2xl font-bold text-center">
+                            <!-- Score -->
+                            <div class="font-bold text-3xl text-gray-800">
                                 ${game.status.toLowerCase().includes('final') ? `${game.away_team.score} - ${game.home_team.score}` : 'vs'}
                             </div>
-                            <div class="flex items-center gap-3 w-1/3 justify-end">
-                                <span class="font-bold text-lg">${game.home_team.abbreviation}</span>
-                                <img src="${game.home_team.logo}" alt="${game.home_team.abbreviation}" class="team-logo">
+                            <!-- Home Team -->
+                            <div class="flex flex-col items-center">
+                                <img src="${game.home_team.logo}" alt="${game.home_team.abbreviation}" class="team-logo mb-2" onerror="this.src='https://placehold.co/40x40/cccccc/ffffff?text=?'">
+                                <span class="font-bold text-gray-800">${game.home_team.abbreviation}</span>
+                                <span class="text-sm text-gray-500">Home</span>
                             </div>
                         </div>
-                         <div class="text-xs text-center text-gray-500">${game.status}</div>
                     </div>
-                    <div class="bg-gray-50 p-3">
-                        <div class="text-center">
-                            <span class="font-semibold">Prediction: </span>
-                            <span class="font-bold text-indigo-600">${game.predicted_winner || 'N/A'}</span>
+                    <div class="bg-gray-50 p-3 rounded-b-lg">
+                        <div class="text-center text-sm mb-2">
+                            <span class="font-medium">Prediction: </span>
+                            <span class="font-bold text-orange-600">${game.predicted_winner || 'N/A'}</span>
                             ${getPredictionBadge(game)}
+                        </div>
+                        <div class="w-full prob-bar-bg rounded-full h-2 flex">
+                            <div class="prob-bar-away h-2 rounded-l-full" style="width: ${awayProb}%" title="Away Win Prob: ${awayProb.toFixed(1)}%"></div>
+                            <div class="prob-bar-home h-2 rounded-r-full" style="width: ${homeProb}%" title="Home Win Prob: ${homeProb.toFixed(1)}%"></div>
                         </div>
                     </div>
                 `;
@@ -212,24 +248,18 @@
         }
         
         function getPredictionBadge(game) {
-            if (game.is_correct === true) {
-                return `<span class="ml-2 inline-block bg-green-100 text-green-800 rounded-full winner-badge">Correct</span>`;
-            }
-            if (game.is_correct === false) {
-                return `<span class="ml-2 inline-block bg-red-100 text-red-800 rounded-full winner-badge">Incorrect</span>`;
-            }
+            if (game.is_correct === true) return `<span class="ml-2 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-200">Correct</span>`;
+            if (game.is_correct === false) return `<span class="ml-2 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-red-600 bg-red-200">Incorrect</span>`;
             return '';
         }
 
-        // --- Initial Load & Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
             populateSelectors();
-            fetchPredictions(); // Fetch for the default selected week on page load
+            fetchPredictions(); 
         });
 
         yearSelect.addEventListener('change', fetchPredictions);
         weekSelect.addEventListener('change', fetchPredictions);
-
     </script>
 </body>
 </html>
