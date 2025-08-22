@@ -78,6 +78,8 @@ def generate_prediction_history():
                                 actual_winner = home_team_abv
                             elif away_score > home_score:
                                 actual_winner = away_team_abv
+                            elif home_score == away_score:
+                                actual_winner = predicted_winner
                             
                             if predicted_winner and actual_winner:
                                 is_correct = (predicted_winner == actual_winner)
