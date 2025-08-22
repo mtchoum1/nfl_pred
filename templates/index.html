@@ -77,10 +77,18 @@
 
         <!-- Controls & Accuracy -->
         <div class="bg-white rounded-lg shadow p-4 mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-4 flex-wrap justify-center">
                 <div>
                     <label for="year-select" class="text-sm font-medium text-gray-700">Year:</label>
                     <select id="year-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"></select>
+                </div>
+                <!-- NEW: Season Type Selector -->
+                <div>
+                    <label for="seasontype-select" class="text-sm font-medium text-gray-700">Season:</label>
+                    <select id="seasontype-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500">
+                        <option value="2">Regular Season</option>
+                        <option value="3">Postseason</option>
+                    </select>
                 </div>
                 <div>
                     <label for="week-select" class="text-sm font-medium text-gray-700">Week:</label>
@@ -112,9 +120,7 @@
         </div>
 
         <!-- Game Schedule Grid -->
-        <div id="schedule-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            <!-- Game cards will be inserted here by JavaScript -->
-        </div>
+        <div id="schedule-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
     </main>
 
     <footer class="bg-gray-800 text-white mt-12">
@@ -125,6 +131,7 @@
 
     <script>
         const yearSelect = document.getElementById('year-select');
+        const seasontypeSelect = document.getElementById('seasontype-select');
         const weekSelect = document.getElementById('week-select');
         const scheduleGrid = document.getElementById('schedule-grid');
         const loader = document.getElementById('loader');
@@ -141,24 +148,37 @@
                 if (year === currentYear) option.selected = true;
                 yearSelect.appendChild(option);
             }
-            for (let week = 1; week <= 18; week++) {
+            updateWeekSelector();
+        }
+        
+        // NEW: Function to update the week selector based on season type
+        function updateWeekSelector() {
+            weekSelect.innerHTML = ''; // Clear existing options
+            const seasonType = seasontypeSelect.value;
+            const weeks = (seasonType == '2') ? 18 : 5; // Regular season vs. Postseason weeks
+            const weekName = (seasonType == '2') ? 'Week' : 'Playoff Week';
+
+            for (let week = 1; week <= weeks; week++) {
                 const option = document.createElement('option');
                 option.value = week;
-                option.textContent = `Week ${week}`;
+                option.textContent = `${weekName} ${week}`;
                 weekSelect.appendChild(option);
             }
         }
 
         async function fetchPredictions() {
             const year = yearSelect.value;
+            const seasontype = seasontypeSelect.value;
             const week = weekSelect.value;
+            
             loader.classList.remove('hidden');
             scheduleGrid.innerHTML = '';
             errorMessage.classList.add('hidden');
             accuracySummary.classList.add('hidden');
 
             try {
-                const response = await fetch(`/api/predict/${year}/${week}`);
+                // UPDATED: API endpoint now includes seasontype
+                const response = await fetch(`/api/predict/${year}/${seasontype}/${week}`);
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
@@ -200,7 +220,6 @@
                 else if (game.is_correct === false) predictionBorderClass = 'incorrect-prediction';
                 gameCard.className = `bg-white rounded-lg shadow game-card ${predictionBorderClass}`;
 
-                const gameDate = new Date(game.date).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
                 const awayProb = (game.away_team.win_probability * 100);
                 const homeProb = (game.home_team.win_probability * 100);
 
@@ -213,17 +232,14 @@
                     </div>
                     <div class="p-4">
                         <div class="grid grid-cols-3 items-center text-center">
-                            <!-- Away Team -->
                             <div class="flex flex-col items-center">
                                 <img src="${game.away_team.logo}" alt="${game.away_team.abbreviation}" class="team-logo mb-2" onerror="this.src='https://placehold.co/40x40/cccccc/ffffff?text=?'">
                                 <span class="font-bold text-gray-800">${game.away_team.abbreviation}</span>
                                 <span class="text-sm text-gray-500">Away</span>
                             </div>
-                            <!-- Score -->
                             <div class="font-bold text-3xl text-gray-800">
                                 ${game.status.toLowerCase().includes('final') ? `${game.away_team.score} - ${game.home_team.score}` : 'vs'}
                             </div>
-                            <!-- Home Team -->
                             <div class="flex flex-col items-center">
                                 <img src="${game.home_team.logo}" alt="${game.home_team.abbreviation}" class="team-logo mb-2" onerror="this.src='https://placehold.co/40x40/cccccc/ffffff?text=?'">
                                 <span class="font-bold text-gray-800">${game.home_team.abbreviation}</span>
@@ -259,6 +275,11 @@
         });
 
         yearSelect.addEventListener('change', fetchPredictions);
+        // UPDATED: Both selectors now trigger a fetch
+        seasontypeSelect.addEventListener('change', () => {
+            updateWeekSelector();
+            fetchPredictions();
+        });
         weekSelect.addEventListener('change', fetchPredictions);
     </script>
 </body>
