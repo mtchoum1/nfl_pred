@@ -5,6 +5,7 @@ import json
 from data_loader import load_teams_from_csv
 from predict import predict_winner
 from team import parse_game_json, Team
+from collections import defaultdict
 
 app = Flask(__name__)
 
@@ -28,6 +29,38 @@ except FileNotFoundError:
     print("WARNING: 'final_team_stats.csv' not found. Live predictions may not work.")
     print("Please run 'history_generator.py' to create the necessary files.")
 
+# --- NEW: Helper to load team mappings ---
+teams_map = {}
+try:
+    with open('team_abv.csv', mode='r') as infile:
+        reader = csv.DictReader(infile)
+        for row in reader:
+            teams_map[row['Team_Abv']] = row['Team']
+    print("Team abbreviations map loaded.")
+except FileNotFoundError:
+    print("WARNING: 'team_abv.csv' not found. Full team names will be unavailable for standings.")
+
+team_logos = {}
+def load_team_logos():
+    global team_logos
+    if not team_logos:
+        try:
+            url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+            for team in data.get('sports', [{}])[0].get('leagues', [{}])[0].get('teams', []):
+                team_data = team.get('team', {})
+                abbreviation = team_data.get('abbreviation')
+                logo_url = next((logo.get('href') for logo in team_data.get('logos', []) if logo.get('width') == 40), None)
+                if abbreviation and logo_url:
+                    team_logos[abbreviation] = logo_url
+            print("Team logos loaded from ESPN API.")
+        except requests.RequestException as e:
+            print(f"Could not fetch team logos from ESPN API: {e}")
+
+load_team_logos()
+
 
 def predict_future_week(year, seasontype, week):
     """
@@ -36,7 +69,7 @@ def predict_future_week(year, seasontype, week):
     print(f"Generating live predictions for {year}, Season Type {seasontype}, Week {week}...")
     
     old_teams = latest_season_stats
-    new_teams = load_teams_from_csv('nfl2021.csv') # Base stats for a new season
+    new_teams = load_teams_from_csv('team_abv.csv') # Base stats for a new season
 
     if not old_teams:
         return {"error": "Missing base data from last season. Cannot make live predictions."}, 500
@@ -93,7 +126,7 @@ def index():
 @app.route('/api/predict/<int:year>/<int:seasontype>/<int:week>')
 def get_predictions(year, seasontype, week):
     # Check if the requested week is in our history
-    games_for_week = [g for g in prediction_history if int(g['year']) == year and int(g['seasontype']) == seasontype and int(g['week']) == week]
+    games_for_week = [g for g in prediction_history if g.get('year') and g.get('seasontype') and g.get('week') and int(g['year']) == year and int(g['seasontype']) == seasontype and int(g['week']) == week]
 
     if games_for_week:
         print(f"Serving historical data for {year}, Season Type {seasontype}, Week {week}.")
@@ -142,6 +175,61 @@ def get_predictions(year, seasontype, week):
     else:
         result, status_code = predict_future_week(year, seasontype, week)
         return jsonify(result), status_code
+
+# --- NEW: Standings Page Route ---
+@app.route('/standings/<int:year>/<int:seasontype>')
+def standings(year, seasontype):
+    standings_data = defaultdict(lambda: {
+        'actual_wins': 0, 'actual_losses': 0, 'actual_ties': 0,
+        'predicted_wins': 0, 'predicted_losses': 0,
+        'team_name': '', 'team_logo': ''
+    })
+
+    games_for_year = [
+        g for g in prediction_history
+        if g.get('year') and g.get('seasontype') and 
+           int(g['year']) == year and int(g['seasontype']) == seasontype and
+           g.get('actual_winner') is not None and g.get('actual_winner') != '' and
+           g.get('predicted_winner') is not None and g.get('predicted_winner') != ''
+    ]
+
+    all_teams = set(g['home_team'] for g in games_for_year) | set(g['away_team'] for g in games_for_year)
+
+    for team_abv in all_teams:
+        standings_data[team_abv]['team_name'] = teams_map.get(team_abv, team_abv)
+        standings_data[team_abv]['team_logo'] = team_logos.get(team_abv, 'https://placehold.co/40x40/cccccc/ffffff?text=?')
+
+    for game in games_for_year:
+        home = game['home_team']
+        away = game['away_team']
+        actual_winner = game['actual_winner']
+        predicted_winner = game['predicted_winner']
+
+        is_tie = not (actual_winner == home or actual_winner == away)
+        
+        if is_tie:
+            standings_data[home]['actual_ties'] += 1
+            standings_data[away]['actual_ties'] += 1
+        else:
+            actual_loser = away if actual_winner == home else home
+            standings_data[actual_winner]['actual_wins'] += 1
+            standings_data[actual_loser]['actual_losses'] += 1
+            
+        predicted_loser = away if predicted_winner == home else home
+        standings_data[predicted_winner]['predicted_wins'] += 1
+        standings_data[predicted_loser]['predicted_losses'] += 1
+
+    for team, data in standings_data.items():
+        data['difference'] = data['actual_wins'] - data['predicted_wins']
+        data['actual_record'] = f"{data['actual_wins']}-{data['actual_losses']}"
+        if data['actual_ties'] > 0:
+            data['actual_record'] += f"-{data['actual_ties']}"
+        data['predicted_record'] = f"{data['predicted_wins']}-{data['predicted_losses']}"
+
+    sorted_standings = dict(sorted(standings_data.items(), key=lambda item: item[1]['actual_wins'], reverse=True))
+
+    return render_template('standings.html', standings=sorted_standings, selected_year=year, selected_seasontype=seasontype)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

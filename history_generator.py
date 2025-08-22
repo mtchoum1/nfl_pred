@@ -26,7 +26,7 @@ def generate_prediction_history():
 
         for year in range(2022, 2025):
             print(f"\n--- Processing Year: {year} ---")
-            new_teams = load_teams_from_csv('nfl2021.csv')
+            new_teams = load_teams_from_csv('team_abv.csv')
             
             # Loop through both regular season (2) and postseason (3)
             for seasontype in [2, 3]:
@@ -87,16 +87,15 @@ def generate_prediction_history():
                                 'home_win_prob': team1_prob, 'away_win_prob': team2_prob, 'is_correct': is_correct
                             })
                         
-                        if seasontype == 2:
-                            for game in events:
-                                if game.get('status', {}).get('type', {}).get('completed', False):
-                                    game_id = game.get('id')
-                                    try:
-                                        box_res = requests.get(f"{boxscore_base_url}{game_id}")
-                                        box_res.raise_for_status()
-                                        parse_game_json(box_res.json(), new_teams)
-                                    except requests.RequestException as e:
-                                        print(f"      Could not parse game {game_id} to update stats: {e}")
+                        for game in events:
+                            if game.get('status', {}).get('type', {}).get('completed', False):
+                                game_id = game.get('id')
+                                try:
+                                    box_res = requests.get(f"{boxscore_base_url}{game_id}")
+                                    box_res.raise_for_status()
+                                    parse_game_json(box_res.json(), new_teams)
+                                except requests.RequestException as e:
+                                    print(f"      Could not parse game {game_id} to update stats: {e}")
 
                     except requests.RequestException as e:
                         print(f"      Could not fetch data for Week {week}: {e}")
