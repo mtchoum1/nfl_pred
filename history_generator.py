@@ -24,7 +24,7 @@ def generate_prediction_history():
         writer.writeheader()
 
         # Initialize old_teams. For the first year (2022), it will be a blank slate.
-        old_teams = load_teams_from_csv('team_abv.csv')
+        old_teams = load_teams_from_csv('nfl2021.csv')
 
         for year in range(2022, 2025):
             print(f"\n--- Processing Year: {year} ---")

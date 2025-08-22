@@ -17,7 +17,7 @@ def load_teams_from_csv(filepath):
                 float(row.get('Total_Giveaways', 0)),
                 float(row.get('Total_PointsFor', 0)),
                 float(row.get('Total_PointsAgainst', 0)),
-                float(row.get('Total_GamesPlayed', 1))
+                float(row.get('Total_GamesPlayed', 0))
             )
             teams[name] = t
     return teams
