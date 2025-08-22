@@ -44,11 +44,11 @@
         <div class="bg-white rounded-lg shadow p-4 mb-8 flex items-center justify-center gap-6">
             <div>
                 <label for="year-select" class="text-sm font-medium text-gray-700">Year:</label>
-                <select id="year-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"></select>
+                <select id="year-select" data-selected="{{ selected_year }}" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"></select>
             </div>
             <div>
                 <label for="seasontype-select" class="text-sm font-medium text-gray-700">Season:</label>
-                <select id="seasontype-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500">
+                <select id="seasontype-select" data-selected="{{ selected_seasontype }}" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500">
                     <option value="2">Regular Season</option>
                     <option value="3">Postseason</option>
                 </select>
@@ -114,14 +114,22 @@
 
         function populateSelectors() {
             const currentYear = new Date().getFullYear();
+            // FIXED: Read selected year from the data attribute
+            const selectedYear = yearSelect.dataset.selected;
+
             for (let year = currentYear; year >= 2022; year--) {
                 const option = document.createElement('option');
                 option.value = year;
                 option.textContent = year;
-                if (year === {{ selected_year }}) option.selected = true;
+                // Use '==' for comparison as dataset value is a string
+                if (year == selectedYear) {
+                    option.selected = true;
+                }
                 yearSelect.appendChild(option);
             }
-            seasontypeSelect.value = "{{ selected_seasontype }}";
+            
+            // FIXED: Read selected season type from the data attribute
+            seasontypeSelect.value = seasontypeSelect.dataset.selected;
         }
 
         function navigateToStandings() {

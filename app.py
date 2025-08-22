@@ -2,25 +2,32 @@ from flask import Flask, jsonify, render_template
 import csv
 import requests
 import json
+import os
+from collections import defaultdict
 from data_loader import load_teams_from_csv
 from predict import predict_winner
 from team import parse_game_json, Team
-from collections import defaultdict
 
 app = Flask(__name__)
 
-# --- Load Historical and Base Data ---
+# --- Constants and Globals ---
+HISTORY_FILE = 'prediction_history.csv'
+FIELDNAMES = [
+    'year', 'seasontype', 'week', 'game_id', 'home_team', 'away_team',
+    'predicted_winner', 'actual_winner', 'home_win_prob', 'away_win_prob', 'is_correct'
+]
 prediction_history = []
 latest_season_stats = {}
 
+# --- Load Historical and Base Data ---
 try:
-    with open('prediction_history.csv', mode='r') as infile:
+    with open(HISTORY_FILE, mode='r') as infile:
         reader = csv.DictReader(infile)
         for row in reader:
             prediction_history.append(row)
     print("Prediction history loaded successfully.")
 except FileNotFoundError:
-    print("WARNING: 'prediction_history.csv' not found. Historical data will be unavailable.")
+    print(f"WARNING: '{HISTORY_FILE}' not found. It will be created when the first game goes final.")
 
 try:
     latest_season_stats = load_teams_from_csv('final_team_stats.csv')
@@ -29,7 +36,6 @@ except FileNotFoundError:
     print("WARNING: 'final_team_stats.csv' not found. Live predictions may not work.")
     print("Please run 'history_generator.py' to create the necessary files.")
 
-# --- NEW: Helper to load team mappings ---
 teams_map = {}
 try:
     with open('team_abv.csv', mode='r') as infile:
@@ -61,15 +67,34 @@ def load_team_logos():
 
 load_team_logos()
 
+# --- NEW: Function to write completed games to CSV ---
+def append_to_history(game_data):
+    """Appends a single game record to the history CSV and in-memory list."""
+    if any(str(g['game_id']) == str(game_data['game_id']) for g in prediction_history):
+        print(f"Game {game_data['game_id']} already in history. Skipping append.")
+        return
+
+    try:
+        file_exists = os.path.isfile(HISTORY_FILE)
+        with open(HISTORY_FILE, 'a', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow(game_data)
+        
+        prediction_history.append(game_data)
+        print(f"Successfully appended game {game_data['game_id']} to prediction history.")
+    except Exception as e:
+        print(f"Error appending to history file: {e}")
 
 def predict_future_week(year, seasontype, week):
     """
-    Generates predictions for a future week on-the-fly.
+    Generates predictions for a future week and saves them to history if they are final.
     """
     print(f"Generating live predictions for {year}, Season Type {seasontype}, Week {week}...")
     
     old_teams = latest_season_stats
-    new_teams = load_teams_from_csv('team_abv.csv') # Base stats for a new season
+    new_teams = load_teams_from_csv('team_abv.csv') 
 
     if not old_teams:
         return {"error": "Missing base data from last season. Cannot make live predictions."}, 500
@@ -92,24 +117,35 @@ def predict_future_week(year, seasontype, week):
             home_team_abv = home_team_data.get('team', {}).get('abbreviation')
             away_team_abv = away_team_data.get('team', {}).get('abbreviation')
 
-            # For live predictions, we assume it's late in the season, so we can use a high week number
             prediction_week = week if seasontype == 2 else 18 + week
-
             predicted_winner, team1_prob, team2_prob = predict_winner(home_team_abv, away_team_abv, old_teams, new_teams, prediction_week, home_team_abv)
 
             game_info = {
                 "id": game_id, "date": game.get('date'), "name": game.get('name'),
                 "status": game.get('status', {}).get('type', {}).get('detail'),
-                "home_team": {
-                    "abbreviation": home_team_abv, "logo": home_team_data.get('team', {}).get('logo'),
-                    "score": '0', "win_probability": team1_prob
-                },
-                "away_team": {
-                    "abbreviation": away_team_abv, "logo": away_team_data.get('team', {}).get('logo'),
-                    "score": '0', "win_probability": team2_prob
-                },
+                "home_team": {"abbreviation": home_team_abv, "logo": home_team_data.get('team', {}).get('logo'), "score": home_team_data.get('score', '0'), "win_probability": team1_prob},
+                "away_team": {"abbreviation": away_team_abv, "logo": away_team_data.get('team', {}).get('logo'), "score": away_team_data.get('score', '0'), "win_probability": team2_prob},
                 "predicted_winner": predicted_winner, "actual_winner": None, "is_correct": None
             }
+            
+            # UPDATED: Check if game is final and save to history
+            is_final = game.get('status', {}).get('type', {}).get('name') == 'STATUS_FINAL'
+            if is_final:
+                actual_winner_data = next((c for c in competitors if c.get('winner') is True), None)
+                actual_winner = actual_winner_data['team']['abbreviation'] if actual_winner_data else None
+
+                if actual_winner:
+                    is_correct = (predicted_winner == actual_winner)
+                    game_info.update({"actual_winner": actual_winner, "is_correct": is_correct})
+                    
+                    history_row = {
+                        'year': year, 'seasontype': seasontype, 'week': week, 'game_id': game_id,
+                        'home_team': home_team_abv, 'away_team': away_team_abv,
+                        'predicted_winner': predicted_winner, 'actual_winner': actual_winner,
+                        'home_win_prob': team1_prob, 'away_win_prob': team2_prob, 'is_correct': is_correct
+                    }
+                    append_to_history(history_row)
+
             predictions_list.append(game_info)
 
         return {"games": predictions_list, "accuracy": {"correct": 0, "total": 0, "percentage": 0}}, 200
@@ -125,7 +161,6 @@ def index():
 
 @app.route('/api/predict/<int:year>/<int:seasontype>/<int:week>')
 def get_predictions(year, seasontype, week):
-    # Check if the requested week is in our history
     games_for_week = [g for g in prediction_history if g.get('year') and g.get('seasontype') and g.get('week') and int(g['year']) == year and int(g['seasontype']) == seasontype and int(g['week']) == week]
 
     if games_for_week:
@@ -161,11 +196,11 @@ def get_predictions(year, seasontype, week):
                     "win_probability": float(game['away_win_prob'] or 0)
                 },
                 "predicted_winner": game['predicted_winner'], "actual_winner": game['actual_winner'],
-                "is_correct": game['is_correct'] == 'True' if game['is_correct'] else None
+                "is_correct": game['is_correct'] == 'True' if game['is_correct'] else (False if game['is_correct'] == 'False' else None)
             }
-            if game['actual_winner']:
+            if game.get('actual_winner'):
                 total += 1
-                if game['is_correct'] == 'True': correct += 1
+                if game.get('is_correct') == 'True': correct += 1
             predictions_list.append(game_info)
         
         return jsonify({
@@ -176,7 +211,6 @@ def get_predictions(year, seasontype, week):
         result, status_code = predict_future_week(year, seasontype, week)
         return jsonify(result), status_code
 
-# --- NEW: Standings Page Route ---
 @app.route('/standings/<int:year>/<int:seasontype>')
 def standings(year, seasontype):
     standings_data = defaultdict(lambda: {
