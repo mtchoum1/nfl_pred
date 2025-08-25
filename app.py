@@ -265,5 +265,5 @@ def standings(year, seasontype):
     return render_template('standings.html', standings=sorted_standings, selected_year=year, selected_seasontype=seasontype)
 
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# if __name__ == '__main__':
+#     app.run(debug=True)
