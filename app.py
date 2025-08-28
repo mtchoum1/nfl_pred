@@ -22,8 +22,17 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 # --- Firebase Configuration for Frontend ---
 # This remains for client-side JS
 firebase_config_string = os.environ.get('FIREBASE_CONFIG', None)
-firebase_config = json.loads(firebase_config_string) if firebase_config_string else {}
-print(f"firebase_config_string: {firebase_config_string}")
+if firebase_config_string:
+    firebase_config = json.loads(firebase_config_string)
+else:
+    print("WARNING: 'FIREBASE_CONFIG' environment variable not set. Attempting to load from config.json.")
+    try:
+        with open('firebase_config.json', 'r') as f:
+            firebase_config = json.load(f)
+        print("Successfully loaded Firebase config from config.json.")
+    except FileNotFoundError:
+        print("ERROR: config.json not found. Firebase client-side features will not work.")
+        firebase_config = {}
 # --- Constants and Globals ---
 HISTORY_FILE = 'prediction_history.csv'
 CURRENT_SEASON_STATS_FILE = 'current_season_stats.csv'
