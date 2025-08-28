@@ -1,275 +1,55 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smore Sports - NFL Predictions</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f3f4f6; /* gray-100 */
-        }
-        .team-logo {
-            width: 40px;
-            height: 40px;
-            object-fit: contain;
-        }
-        .game-card {
-            border: 1px solid #e5e7eb; /* gray-200 */
-            transition: all 0.2s ease-in-out;
-        }
-        .game-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-        }
-        .correct-prediction {
-            background-color: #f0fdf4; /* green-50 */
-            border-left: 4px solid #22c55e; /* green-500 */
-        }
-        .incorrect-prediction {
-            background-color: #fef2f2; /* red-50 */
-            border-left: 4px solid #ef4444; /* red-500 */
-        }
-        .pending-prediction {
-             border-left: 4px solid #eab308; /* yellow-500 */
-        }
-        .prob-bar-bg {
-            background-color: #e5e7eb; /* gray-200 */
-        }
-        .prob-bar-away {
-            background-color: #6366f1; /* indigo-500 */
-        }
-        .prob-bar-home {
-            background-color: #ec4899; /* pink-500 */
-        }
-    </style>
-</head>
-<body class="text-gray-800">
+{% extends "layout.html" %}
 
-    <header class="bg-white shadow-md sticky top-0 z-10">
-        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center">
-                    <span class="font-black text-2xl text-gray-900">SMORE</span>
-                    <span class="font-bold text-2xl text-orange-500">SPORTS</span>
-                </div>
-                <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-4">
-                        <a href="/" class="bg-gray-900 text-white px-3 py-2 rounded-md text-sm font-medium" aria-current="page">NFL Predictions</a>
-                        <a href="/standings/2022/2" class="text-gray-500 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Standings</a>
-                    </div>
-                </div>
-            </div>
-        </nav>
-    </header>
+{% block title %}NFL Predictions{% endblock %}
 
-    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div class="text-center mb-6">
-            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">NFL Weekly Predictions</h1>
+{% block content %}
+<div class="text-center mb-6">
+    <h1 id="welcome-message" class="text-3xl font-extrabold text-gray-900 tracking-tight">NFL Weekly Predictions</h1>
+</div>
+
+<div class="bg-white rounded-lg shadow p-4 mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
+    <div class="flex items-center gap-4 flex-wrap justify-center">
+        <div>
+            <label for="year-select" class="text-sm font-medium text-gray-700">Year:</label>
+            <select id="year-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"></select>
         </div>
-
-        <div class="bg-white rounded-lg shadow p-4 mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div class="flex items-center gap-4 flex-wrap justify-center">
-                <div>
-                    <label for="year-select" class="text-sm font-medium text-gray-700">Year:</label>
-                    <select id="year-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"></select>
-                </div>
-                <div>
-                    <label for="seasontype-select" class="text-sm font-medium text-gray-700">Season:</label>
-                    <select id="seasontype-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500">
-                        <option value="2">Regular Season</option>
-                        <option value="3">Postseason</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="week-select" class="text-sm font-medium text-gray-700">Week:</label>
-                    <select id="week-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"></select>
-                </div>
-            </div>
-            <div id="accuracy-summary" class="text-center md:text-right hidden">
-                 <h2 class="text-sm font-medium text-gray-500">Weekly Accuracy</h2>
-                 <p class="text-2xl font-bold text-gray-800">
-                    <span id="correct-count">0</span> / <span id="total-count">0</span>
-                    (<span id="percentage">0.00</span>%)
-                 </p>
-            </div>
+        <div>
+            <label for="seasontype-select" class="text-sm font-medium text-gray-700">Season:</label>
+            <select id="seasontype-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500">
+                <option value="2">Regular Season</option>
+                <option value="3">Postseason</option>
+            </select>
         </div>
-
-        <div id="loader" class="text-center py-12 hidden">
-             <svg class="animate-spin h-8 w-8 text-orange-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="mt-3 text-gray-600 font-medium">Fetching Predictions...</p>
+        <div>
+            <label for="week-select" class="text-sm font-medium text-gray-700">Week:</label>
+            <select id="week-select" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"></select>
         </div>
+    </div>
+    <div id="accuracy-summary" class="text-center md:text-right hidden">
+         <h2 class="text-sm font-medium text-gray-500">Weekly Accuracy</h2>
+         <p class="text-2xl font-bold text-gray-800">
+            <span id="correct-count">0</span> / <span id="total-count">0</span>
+            (<span id="percentage">0.00</span>%)
+         </p>
+    </div>
+</div>
 
-        <div id="error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md hidden" role="alert">
-            <p class="font-bold">Error</p>
-            <p id="error-text"></p>
-        </div>
+<div id="loader" class="text-center py-12 hidden">
+     <svg class="animate-spin h-8 w-8 text-orange-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    <p class="mt-3 text-gray-600 font-medium">Fetching Predictions...</p>
+</div>
 
-        <div id="schedule-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
-    </main>
+<div id="error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md hidden" role="alert">
+    <p class="font-bold">Error</p>
+    <p id="error-text"></p>
+</div>
 
-    <footer class="bg-gray-800 text-white mt-12">
-        <div class="container mx-auto py-4 px-6 text-center text-sm">
-            &copy; 2025 Smore Sports. All Rights Reserved.
-        </div>
-    </footer>
+<div id="schedule-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+{% endblock %}
 
-    <script>
-        const yearSelect = document.getElementById('year-select');
-        const seasontypeSelect = document.getElementById('seasontype-select');
-        const weekSelect = document.getElementById('week-select');
-        const scheduleGrid = document.getElementById('schedule-grid');
-        const loader = document.getElementById('loader');
-        const errorMessage = document.getElementById('error-message');
-        const errorText = document.getElementById('error-text');
-        const accuracySummary = document.getElementById('accuracy-summary');
-
-        function populateSelectors() {
-            const currentYear = new Date().getFullYear();
-            for (let year = currentYear + 1; year >= 2022; year--) {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                if (year === currentYear) option.selected = true;
-                yearSelect.appendChild(option);
-            }
-            updateWeekSelector();
-        }
-        
-        function updateWeekSelector() {
-            weekSelect.innerHTML = '';
-            const seasonType = seasontypeSelect.value;
-            const weeks = (seasonType == '2') ? 18 : 5;
-            const weekName = (seasonType == '2') ? 'Week' : 'Playoff Week';
-
-            for (let week = 1; week <= weeks; week++) {
-                const option = document.createElement('option');
-                option.value = week;
-                option.textContent = `${weekName} ${week}`;
-                weekSelect.appendChild(option);
-            }
-        }
-
-        async function fetchPredictions() {
-            const year = yearSelect.value;
-            const seasontype = seasontypeSelect.value;
-            const week = weekSelect.value;
-            
-            loader.classList.remove('hidden');
-            scheduleGrid.innerHTML = '';
-            errorMessage.classList.add('hidden');
-            accuracySummary.classList.add('hidden');
-
-            try {
-                const response = await fetch(`/api/predict/${year}/${seasontype}/${week}`);
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                displayGames(data.games);
-                displayAccuracy(data.accuracy);
-            } catch (error) {
-                console.error('Fetch error:', error);
-                errorText.textContent = error.message;
-                errorMessage.classList.remove('hidden');
-            } finally {
-                loader.classList.add('hidden');
-            }
-        }
-        
-        function displayAccuracy(accuracy) {
-            if (accuracy && accuracy.total > 0) {
-                document.getElementById('correct-count').textContent = accuracy.correct;
-                document.getElementById('total-count').textContent = accuracy.total;
-                document.getElementById('percentage').textContent = accuracy.percentage.toFixed(2);
-                accuracySummary.classList.remove('hidden');
-            }
-        }
-
-        function displayGames(games) {
-            if (!games || games.length === 0) {
-                 scheduleGrid.innerHTML = `<div class="col-span-full text-center bg-white rounded-lg shadow p-8">
-                                              <h3 class="text-xl font-semibold text-gray-700">No Games Found</h3>
-                                              <p class="text-gray-500 mt-2">The schedule for this week may not be available yet.</p>
-                                           </div>`;
-                 return;
-            }
-            
-            games.forEach(game => {
-                const gameCard = document.createElement('div');
-                let predictionBorderClass = 'pending-prediction';
-                if (game.is_correct === true) predictionBorderClass = 'correct-prediction';
-                else if (game.is_correct === false) predictionBorderClass = 'incorrect-prediction';
-                gameCard.className = `bg-white rounded-lg shadow game-card ${predictionBorderClass}`;
-
-                const awayProb = (game.away_team.win_probability * 100);
-                const homeProb = (game.home_team.win_probability * 100);
-
-                gameCard.innerHTML = `
-                    <div class="p-4 border-b border-gray-200">
-                        <div class="flex justify-between items-center text-xs text-gray-500">
-                            <span>${game.name}</span>
-                            <span>${game.status || 'Scheduled'}</span>
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <div class="grid grid-cols-3 items-center text-center">
-                            <div class="flex flex-col items-center">
-                                <img src="${game.away_team.logo}" alt="${game.away_team.abbreviation}" class="team-logo mb-2" onerror="this.src='https://placehold.co/40x40/cccccc/ffffff?text=?'">
-                                <span class="font-bold text-gray-800">${game.away_team.abbreviation}</span>
-                                <span class="text-sm text-gray-500">Away</span>
-                            </div>
-                            <div class="font-bold text-3xl text-gray-800">
-                                ${game.status?.toLowerCase().includes('final') ? `${game.away_team.score} - ${game.home_team.score}` : 'vs'}
-                            </div>
-                            <div class="flex flex-col items-center">
-                                <img src="${game.home_team.logo}" alt="${game.home_team.abbreviation}" class="team-logo mb-2" onerror="this.src='https://placehold.co/40x40/cccccc/ffffff?text=?'">
-                                <span class="font-bold text-gray-800">${game.home_team.abbreviation}</span>
-                                <span class="text-sm text-gray-500">Home</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 p-3 rounded-b-lg">
-                        <div class="text-center text-sm mb-2">
-                            <span class="font-medium">Prediction: </span>
-                            <span class="font-bold text-orange-600">${game.predicted_winner || 'N/A'}</span>
-                            ${getPredictionBadge(game)}
-                        </div>
-                        <div class="w-full prob-bar-bg rounded-full h-2 flex">
-                            <div class="prob-bar-away h-2 rounded-l-full" style="width: ${awayProb}%" title="Away Win Prob: ${awayProb.toFixed(1)}%"></div>
-                            <div class="prob-bar-home h-2 rounded-r-full" style="width: ${homeProb}%" title="Home Win Prob: ${homeProb.toFixed(1)}%"></div>
-                        </div>
-                    </div>
-                `;
-                scheduleGrid.appendChild(gameCard);
-            });
-        }
-        
-        function getPredictionBadge(game) {
-            if (game.is_correct === true) return `<span class="ml-2 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-200">Correct</span>`;
-            if (game.is_correct === false) return `<span class="ml-2 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-red-600 bg-red-200">Incorrect</span>`;
-            return '';
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            populateSelectors();
-            fetchPredictions(); 
-        });
-
-        yearSelect.addEventListener('change', fetchPredictions);
-        seasontypeSelect.addEventListener('change', () => {
-            updateWeekSelector();
-            fetchPredictions();
-        });
-        weekSelect.addEventListener('change', fetchPredictions);
-    </script>
-</body>
-</html>
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/predictions.js') }}"></script>
+{% endblock %}

@@ -1,146 +1,74 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smore Sports - NFL Standings</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Roboto', sans-serif; background-color: #f3f4f6; }
-        .team-logo { width: 32px; height: 32px; object-fit: contain; }
-        .diff-pos { color: #16a34a; /* green-600 */ }
-        .diff-neg { color: #dc2626; /* red-600 */ }
-        .diff-zero { color: #6b7280; /* gray-500 */ }
-    </style>
-</head>
-<body class="text-gray-800">
+{% extends "layout.html" %}
 
-    <header class="bg-white shadow-md sticky top-0 z-10">
-        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center">
-                    <span class="font-black text-2xl text-gray-900">SMORE</span>
-                    <span class="font-bold text-2xl text-orange-500">SPORTS</span>
-                </div>
-                <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-4">
-                        <a href="/" class="text-gray-500 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">NFL Predictions</a>
-                        <a href="/standings/2023/2" class="bg-gray-900 text-white px-3 py-2 rounded-md text-sm font-medium" aria-current="page">Standings</a>
-                    </div>
-                </div>
-            </div>
-        </nav>
-    </header>
+{% block title %}NFL Standings{% endblock %}
 
-    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div class="text-center mb-6">
-            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">NFL Standings Comparison</h1>
-            <p class="mt-2 text-lg text-gray-600">Actual vs. Smore Sports Predicted Records</p>
-        </div>
+{% block content %}
+<div class="text-center mb-6">
+    <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">NFL Standings Comparison</h1>
+    <p class="mt-2 text-lg text-gray-600">Actual vs. Smore Sports Predicted Records</p>
+</div>
 
-        <div class="bg-white rounded-lg shadow p-4 mb-8 flex items-center justify-center gap-6">
-            <div>
-                <label for="year-select" class="text-sm font-medium text-gray-700">Year:</label>
-                <select id="year-select" data-selected="{{ selected_year }}" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"></select>
-            </div>
-            <div>
-                <label for="seasontype-select" class="text-sm font-medium text-gray-700">Season:</label>
-                <select id="seasontype-select" data-selected="{{ selected_seasontype }}" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500">
-                    <option value="2">Regular Season</option>
-                    <option value="3">Postseason</option>
-                </select>
-            </div>
-        </div>
+<div class="bg-white rounded-lg shadow p-4 mb-8 flex items-center justify-center gap-6">
+    <div>
+        <label for="year-select" class="text-sm font-medium text-gray-700">Year:</label>
+        <select id="year-select" data-selected="{{ selected_year }}" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"></select>
+    </div>
+    <div>
+        <label for="seasontype-select" class="text-sm font-medium text-gray-700">Season:</label>
+        <select id="seasontype-select" data-selected="{{ selected_seasontype }}" class="mt-1 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500">
+            <option value="2">Regular Season</option>
+            <option value="3">Postseason</option>
+        </select>
+    </div>
+</div>
 
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
-                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actual Record</th>
-                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Predicted Record</th>
-                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Difference in wins (Actual - Predicted)">Win Diff.</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% if standings %}
-                        {% for team_abv, data in standings.items() %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0 h-8 w-8">
-                                        <img class="team-logo" src="{{ data.team_logo }}" alt="{{ team_abv }} logo">
-                                    </div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-bold text-gray-900">{{ data.team_name }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-800">{{ data.actual_record }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-500">{{ data.predicted_record }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold
-                                {% if data.difference > 0 %} diff-pos
-                                {% elif data.difference < 0 %} diff-neg
-                                {% else %} diff-zero
-                                {% endif %}">
-                                {% if data.difference > 0 %}+{% endif %}{{ data.difference }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="4" class="px-6 py-12 text-center text-gray-500">
-                                No historical data found for this selection.
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </main>
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
+                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actual Record</th>
+                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Predicted Record</th>
+                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Difference in wins (Actual - Predicted)">Win Diff.</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            {% if standings %}
+                {% for team_abv, data in standings.items() %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-8 w-8">
+                                <img class="team-logo" src="{{ data.team_logo }}" alt="{{ team_abv }} logo">
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-bold text-gray-900">{{ data.team_name }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-800">{{ data.actual_record }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-500">{{ data.predicted_record }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold
+                        {% if data.difference > 0 %} diff-pos
+                        {% elif data.difference < 0 %} diff-neg
+                        {% else %} diff-zero
+                        {% endif %}">
+                        {% if data.difference > 0 %}+{% endif %}{{ data.difference }}
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="4" class="px-6 py-12 text-center text-gray-500">
+                        No historical data found for this selection.
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
 
-    <footer class="bg-gray-800 text-white mt-12">
-        <div class="container mx-auto py-4 px-6 text-center text-sm">
-            &copy; 2025 Smore Sports. All Rights Reserved.
-        </div>
-    </footer>
-
-    <script>
-        const yearSelect = document.getElementById('year-select');
-        const seasontypeSelect = document.getElementById('seasontype-select');
-
-        function populateSelectors() {
-            const currentYear = new Date().getFullYear();
-            // FIXED: Read selected year from the data attribute
-            const selectedYear = yearSelect.dataset.selected;
-
-            for (let year = currentYear; year >= 2022; year--) {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                // Use '==' for comparison as dataset value is a string
-                if (year == selectedYear) {
-                    option.selected = true;
-                }
-                yearSelect.appendChild(option);
-            }
-            
-            // FIXED: Read selected season type from the data attribute
-            seasontypeSelect.value = seasontypeSelect.dataset.selected;
-        }
-
-        function navigateToStandings() {
-            const year = yearSelect.value;
-            const seasontype = seasontypeSelect.value;
-            window.location.href = `/standings/${year}/${seasontype}`;
-        }
-
-        document.addEventListener('DOMContentLoaded', populateSelectors);
-        yearSelect.addEventListener('change', navigateToStandings);
-        seasontypeSelect.addEventListener('change', navigateToStandings);
-    </script>
-</body>
-</html>
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/standings.js') }}"></script>
+{% endblock %}

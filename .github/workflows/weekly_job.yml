@@ -1,0 +1,75 @@
+# Name of the GitHub Action workflow
+name: Process Weekly Game Results
+
+# Controls when the action will run
+on:
+  schedule:
+    # Runs at 06:00 UTC (2:00 AM EDT) on Tuesday.
+    - cron: '0 6 * * 2'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  run-weekly-script:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checks-out your repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      # Step 5: Run the cron_jobs.py script with accurate week calculation
+      - name: Run Weekly Processing Script
+        run: |
+          YEAR=$(date +%Y)
+          
+          # Find the date of the first Thursday in September of the current year
+          for i in {1..7}; do
+            DAY_OF_WEEK=$(date -d "$YEAR-09-0$i" +%u)
+            if [ "$DAY_OF_WEEK" -eq 4 ]; then
+              SEASON_START_DATE="$YEAR-09-0$i"
+              break
+            fi
+          done
+          
+          echo "Detected Season Start Date: $SEASON_START_DATE"
+          
+          # Calculate the number of days between the start date and today
+          DAYS_SINCE_START=$(( ($(date +%s) - $(date -d "$SEASON_START_DATE" +%s)) / 86400 ))
+          
+          # If it's before the season has started, exit gracefully
+          if [ "$DAYS_SINCE_START" -lt 0 ]; then
+            echo "The NFL season has not started yet. Nothing to process."
+            exit 0
+          fi
+          
+          # Calculate the current NFL week (Week 1 is from day 0 to day 6)
+          CURRENT_NFL_WEEK=$((DAYS_SINCE_START / 7 + 1))
+          
+          # This job runs on Tuesday to process the *previous* week
+          WEEK_TO_PROCESS=$((CURRENT_NFL_WEEK - 1))
+          
+          if [ "$WEEK_TO_PROCESS" -lt 1 ]; then
+            echo "It is currently Week 1. There is no previous week to process yet."
+            exit 0
+          fi
+          
+          echo "Current NFL Week is $CURRENT_NFL_WEEK. Processing results for Week $WEEK_TO_PROCESS of $YEAR."
+          python cron_jobs.py $YEAR $WEEK_TO_PROCESS

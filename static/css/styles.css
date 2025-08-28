@@ -1,0 +1,75 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f3f4f6; /* gray-100 */
+}
+
+/* Base Nav Link Style */
+[data-nav-item] {
+    color: #6b7280; /* gray-500 */
+}
+[data-nav-item]:hover {
+    background-color: #374151; /* gray-700 */
+    color: #ffffff;
+}
+/* Active Nav Link Style */
+.active-nav-link {
+    background-color: #111827; /* gray-900 */
+    color: #ffffff;
+}
+
+.team-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+.game-card {
+    border: 1px solid #e5e7eb; /* gray-200 */
+    transition: all 0.2s ease-in-out;
+}
+.game-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+.correct-prediction {
+    background-color: #f0fdf4; /* green-50 */
+    border-left: 4px solid #22c55e; /* green-500 */
+}
+.incorrect-prediction {
+    background-color: #fef2f2; /* red-50 */
+    border-left: 4px solid #ef4444; /* red-500 */
+}
+.pending-prediction {
+     border-left: 4px solid #eab308; /* yellow-500 */
+}
+.prob-bar-bg {
+    background-color: #e5e7eb; /* gray-200 */
+}
+.prob-bar-away {
+    background-color: #6366f1; /* indigo-500 */
+}
+.prob-bar-home {
+    background-color: #ec4899; /* pink-500 */
+}
+.lms-game-card.selected {
+    border-color: #f97316; /* orange-500 */
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.5);
+}
+.standings-team-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+.diff-pos { color: #16a34a; /* green-600 */ }
+.diff-neg { color: #dc2626; /* red-600 */ }
+.diff-zero { color: #6b7280; /* gray-500 */ }
+
+/* Styles for Last Man Standing past picks */
+.lms-correct-pick {
+    background-color: #f0fdf4; /* green-50 */
+    border: 2px solid #22c55e; /* green-500 */
+}
+
+.lms-incorrect-pick {
+    background-color: #fef2f2; /* red-50 */
+    border: 2px solid #ef4444; /* red-500 */
+}

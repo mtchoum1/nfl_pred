@@ -1,23 +1,17 @@
 # history_generator.py
 import csv
-import requests
 import copy
 from data_loader import load_teams_from_csv, save_teams_to_csv
 from predict import predict_winner
-from team import parse_game_json, Team
+from team import parse_game_json
+import espn_api # Use the new centralized API module
 
 def generate_prediction_history():
-    """
-    Generates a CSV file containing NFL game predictions and results for both the
-    regular season and postseason for the years 2022, 2023, and 2024.
-    """
     fieldnames = [
         'year', 'seasontype', 'week', 'game_id', 'home_team', 'away_team', 
         'predicted_winner', 'actual_winner', 'home_win_prob', 'away_win_prob', 'is_correct'
     ]
     
-    boxscore_base_url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event="
-
     with open('prediction_history.csv', 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -28,77 +22,62 @@ def generate_prediction_history():
             print(f"\n--- Processing Year: {year} ---")
             new_teams = load_teams_from_csv('team_abv.csv')
             
-            # Loop through both regular season (2) and postseason (3)
-            for seasontype in [2, 3]:
+            for seasontype in [2, 3]: # 2: Regular, 3: Postseason
                 season_name = "Regular Season" if seasontype == 2 else "Postseason"
-                week_range = range(1, 19) if seasontype == 2 else range(1, 6) # Postseason has up to 5 events (WC, DIV, CONF, PROBOWL, SB)
+                week_range = range(1, 19) if seasontype == 2 else range(1, 6)
                 
                 print(f"  -- Processing {season_name} --")
 
                 for week in week_range:
-                    # Skip week 4 of the postseason (Pro Bowl)
-                    if seasontype == 3 and week == 4:
-                        print(f"    Skipping Postseason Week 4 (Pro Bowl).")
+                    if seasontype == 3 and week == 4: # Skip Pro Bowl
                         continue
 
-                    prediction_week = week if seasontype == 2 else 18 + week
-
                     print(f"    Processing {year}, {season_name}, Week {week}...")
-                    weekly_schedule_url = f"https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=1000&seasontype={seasontype}&dates={year}&week={week}"
                     
-                    try:
-                        weekly_response = requests.get(weekly_schedule_url)
-                        weekly_response.raise_for_status()
-                        events = weekly_response.json().get('events', [])
+                    weekly_data, error = espn_api.get_weekly_schedule(year, seasontype, week)
+                    if error or not weekly_data or not weekly_data.get('events'):
+                        if seasontype == 3: break # End postseason if no more games
+                        continue
 
-                        if not events:
-                            if seasontype == 3:
-                                print(f"      No games found for Postseason Week {week}. Ending postseason processing.")
-                                break 
-                            continue
+                    events = weekly_data['events']
+                    
+                    # Phase 1: Make predictions for all games in the week
+                    for game in events:
+                        game_id = game.get('id')
+                        home_team_data, away_team_data = espn_api.parse_competitors(game)
+                        if not home_team_data or not away_team_data: continue
 
-                        for game in events:
-                            game_id = game.get('id')
-                            competition = game['competitions'][0]
-                            competitors = competition['competitors']
-                            
-                            home_team_data = next((c for c in competitors if c.get('homeAway') == 'home'), {})
-                            away_team_data = next((c for c in competitors if c.get('homeAway') == 'away'), {})
+                        home_team_abv = home_team_data.get('team', {}).get('abbreviation')
+                        away_team_abv = away_team_data.get('team', {}).get('abbreviation')
 
-                            if not home_team_data or not away_team_data: continue
-
-                            home_team_abv = home_team_data.get('team', {}).get('abbreviation')
-                            away_team_abv = away_team_data.get('team', {}).get('abbreviation')
-
-                            predicted_winner, team1_prob, team2_prob = predict_winner(home_team_abv, away_team_abv, old_teams, new_teams, prediction_week, home_team_abv)
-                            
-                            actual_winner, is_correct = None, None
-                            if game.get('status', {}).get('type', {}).get('completed', False):
-                                home_score = int(home_team_data.get('score', 0))
-                                away_score = int(away_team_data.get('score', 0))
-                                actual_winner = home_team_abv if home_score > away_score else away_team_abv
-                                if predicted_winner and actual_winner:
-                                    is_correct = (predicted_winner == actual_winner)
-
-                            writer.writerow({
-                                'year': year, 'seasontype': seasontype, 'week': week, 'game_id': game_id,
-                                'home_team': home_team_abv, 'away_team': away_team_abv,
-                                'predicted_winner': predicted_winner, 'actual_winner': actual_winner,
-                                'home_win_prob': team1_prob, 'away_win_prob': team2_prob, 'is_correct': is_correct
-                            })
+                        prediction_week = week if seasontype == 2 else 18 + week
+                        predicted_winner, home_prob, away_prob = predict_winner(
+                            home_team_abv, away_team_abv, old_teams, new_teams, 
+                            prediction_week, home_team_abv
+                        )
                         
-                        for game in events:
-                            if game.get('status', {}).get('type', {}).get('completed', False):
-                                game_id = game.get('id')
-                                try:
-                                    box_res = requests.get(f"{boxscore_base_url}{game_id}")
-                                    box_res.raise_for_status()
-                                    parse_game_json(box_res.json(), new_teams)
-                                except requests.RequestException as e:
-                                    print(f"      Could not parse game {game_id} to update stats: {e}")
+                        actual_winner, is_correct = None, None
+                        if game.get('status', {}).get('type', {}).get('completed', False):
+                            actual_winner = home_team_abv if home_team_data.get('winner') else (away_team_abv if away_team_data.get('winner') else None)
+                            if predicted_winner and actual_winner:
+                                is_correct = (predicted_winner == actual_winner)
 
-                    except requests.RequestException as e:
-                        print(f"      Could not fetch data for Week {week}: {e}")
+                        writer.writerow({
+                            'year': year, 'seasontype': seasontype, 'week': week, 'game_id': game_id,
+                            'home_team': home_team_abv, 'away_team': away_team_abv,
+                            'predicted_winner': predicted_winner, 'actual_winner': actual_winner,
+                            'home_win_prob': home_prob, 'away_win_prob': away_prob, 'is_correct': is_correct
+                        })
+                    
+                    # Phase 2: Update team stats from completed games
+                    for game in events:
+                        if game.get('status', {}).get('type', {}).get('completed', False):
+                            game_id = game.get('id')
+                            box_data, box_error = espn_api.get_boxscore(game_id)
+                            if box_error:
+                                print(f"      Could not get boxscore for {game_id}: {box_error}")
+                                continue
+                            parse_game_json(box_data, new_teams)
             
             old_teams = copy.deepcopy(new_teams)
         
