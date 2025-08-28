@@ -29,7 +29,7 @@ else:
     try:
         with open('firebase_config.json', 'r') as f:
             firebase_config = json.load(f)
-        print("Successfully loaded Firebase config from config.json.")
+        print("Successfully loaded Firebase config from firebase_config.json.")
     except FileNotFoundError:
         print("ERROR: config.json not found. Firebase client-side features will not work.")
         firebase_config = {}
