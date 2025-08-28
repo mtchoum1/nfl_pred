@@ -100,7 +100,7 @@ function renderGame(games, gameData, year, week, isLockedByTime, nextRequiredWee
         statusNotice = `<p class="text-center text-blue-600 font-semibold mb-4">This week is now locked. Picks can no longer be made or changed.</p>`;
     } else if (isLockedSequentially) {
         statusNotice = `<p class="text-center text-yellow-600 font-semibold mb-4">You must make a pick for Week ${nextRequiredWeek} before you can pick for this week.</p>`;
-    } else if (gameData.status !== 'active') {
+    } else if (gameData.status == 'eliminated') {
         statusNotice = `<p class="text-center text-red-600 font-semibold mb-4">You no longer have a perfect record, but you can keep playing!</p>`;
     }
 

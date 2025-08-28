@@ -189,35 +189,39 @@ def calculate_leaderboard():
         leaderboard = []
         uid_to_email = {user.uid: user.email for user in auth.list_users().iterate_all()}
         
-        all_players_data = db.reference(f'last_man_standing/{year}').get()
+        lms_ref = db.reference(f'last_man_standing/{year}')
+        all_players_data = lms_ref.get()
         if not all_players_data: return []
 
         for uid, data in all_players_data.items():
             if not isinstance(data, dict): continue
-            
-            picks = data.get('picks', {})
-            if not picks: continue
 
-            total_wins = sum(1 for pick in picks.values() if isinstance(pick, dict) and pick.get('result') == 'correct')
+            picks = data.get('picks', {})
+            total_wins, current_streak = 0, 0
             
-            current_streak = 0
-            max_week = max(picks.keys())
-            for week in range(max_week, 0, -1):
-                pick_info = picks.get(week)
+            for week in range(1, len(picks)):
+                pick_info = picks[week]
+                if isinstance(pick_info, dict) and pick_info.get('result') == 'correct':
+                    total_wins += 1
+                
+            for week in range(len(picks) - 1, 0, -1):
+                pick_info = picks[week]
                 if isinstance(pick_info, dict) and pick_info.get('result') == 'correct':
                     current_streak += 1
-                elif isinstance(pick_info, dict) and pick_info.get('result') in ['incorrect', 'eliminated']:
-                    break # Streak is broken
-                # An 'unknown' result does not break the streak but does not add to it either
-            
+                elif isinstance(pick_info, dict) and pick_info.get('result') == 'unknown':
+                    continue
+                else:
+                    break 
+
             leaderboard.append({
                 'email': uid_to_email.get(uid, 'Unknown User'),
                 'wins': total_wins,
                 'streak': current_streak,
                 'status': data.get('status', 'active')
             })
-        
+
         return sorted(leaderboard, key=lambda x: (x['wins'], x['streak']), reverse=True)
+        
     except Exception as e:
         print(f"An error occurred while calculating the leaderboard: {e}")
         return []
