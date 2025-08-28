@@ -15,7 +15,7 @@ def initialize_firebase():
             cred = None
             firebase_config_string = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', None)
             if firebase_config_string:
-                cred = credentials.Certificate(json.load(firebase_config_string))
+                cred = credentials.Certificate(json.loads(firebase_config_string))
             else:
                 print("WARNING: 'GOOGLE_APPLICATION_CREDENTIALS' environment variable not set. Attempting to load from nfl-pred-db58a7919c16.json.")
                 try:
