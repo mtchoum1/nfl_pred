@@ -10,17 +10,7 @@ def initialize_firebase():
         try:
             # IMPORTANT: Ensure your Firebase service account key file is in the root directory
             # or provide the correct path.
-            test = {
-                "type": "service_account",
-                "project_id": "project_id",
-                "private_key_id": "private_key_id",
-                "private_key": "private_key",
-                "token_uri": "token_uri",
-                "auth_provider_x509_cert_url": "auth_provider_x509_cert_url",
-                "client_x509_cert_url": "client_x509_cert_url",
-                "universe_domain": "universe_domain"
-            }
-            cred = credentials.Certificate(test)
+            cred = credentials.ApplicationDefault()
             firebase_admin.initialize_app(cred, {
                 'databaseURL': 'https://nfl-pred-default-rtdb.firebaseio.com'
             })

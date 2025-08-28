@@ -21,14 +21,9 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # --- Firebase Configuration for Frontend ---
 # This remains for client-side JS
-firebase_config = {
-    "apiKey": "apiKey",
-    "authDomain": "authDomain",
-    "projectId": "projectId",
-    "storageBucket": "storageBucket",
-    "messagingSenderId": "messagingSenderId",
-    "appId": "appId",
-}
+firebase_config_string = os.environ.get('FIREBASE_CONFIG', None)
+firebase_config = json.loads(firebase_config_string) if firebase_config_string else {}
+print(f"firebase_config_string: {firebase_config_string}")
 # --- Constants and Globals ---
 HISTORY_FILE = 'prediction_history.csv'
 CURRENT_SEASON_STATS_FILE = 'current_season_stats.csv'
